@@ -1,0 +1,1325 @@
+## HEX
+
+####################################
+##  set "marker" at end of row 3  ##
+####################################
+
+exec,h  #  HOME
+exec,u  #  UP to row 3 so we can set "marker" at row's end
+exec,u  #
+exec,u  #  We're now in row 3
+exec,r  #  move right toward row's end
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r  #  We're now at end of row 3
+
+exec,d1 #  set "marker"
+
+##############################
+##  Copy row 2 into row 14  ##
+##     and clear row 15     ##
+##############################
+
+exec,h  #  HOME
+exec,u  #1  UP toward row #2
+exec,u  #2  We're now in row #2
+
+        ############
+        ##  loop  ##
+        ############
+
+tag,14  #  beginning of "move" loop
+
+exec,fd #  load FLAG with bit from row 2
+
+exec,u  #3  UP towards row #14  -- This is row #3
+exec,u  #4
+exec,u  #5
+exec,u  #6
+exec,u  #7
+exec,u  #8
+exec,u  #9
+exec,u  #10
+exec,u  #11
+exec,u  #12
+exec,u  #13
+exec,u  #14 -- We're now in row #14
+
+exec,df #  load bit in row 14 with FLAG bit
+exec,u  #  UP to row 15
+exec,d0 #  clear the bit in row 15
+
+exec,d  #14  down towards row #3 -- this is row #14
+exec,d  #13
+exec,d  #12
+exec,d  #11
+exec,d  #10
+exec,d  #9
+exec,d  #8
+exec,d  #7
+exec,d  #6
+exec,d  #5
+exec,d  #4
+exec,d  #3  We're now in row 3
+
+ifd0,sk #  Is there a "marker" here?
+adv,14  #  If so, ADVANCE out of loop
+exec,d  #  If not, move down to row 2
+exec,r  #  advance to next column
+ret,14  #  RETREAT to repeat loop
+
+tag,14  #  EXIT point of this loop
+
+#############################
+##  Copy row 1 into row 8  ##
+##     and clear row 9     ##
+#############################
+
+exec,h  #  HOME
+exec,u  #  UP to row 1
+
+        ############
+        ##  loop  ##
+        ############
+
+tag,14  #  beginning of "move" loop
+
+exec,fd #  load FLAG with bit from row 1
+
+exec,u  #2  UP towards row #8  -- This is row #2
+exec,u  #3
+exec,u  #4
+exec,u  #5
+exec,u  #6
+exec,u  #7
+exec,u  #8  We're now in row #8
+
+exec,df #  load bit in row #8 with FLAG bit
+exec,u  #  UP to row #9
+exec,d0 #  clear the bit in row #9
+
+exec,d  #8  down towards row #3  -- This is row #8
+exec,d  #7
+exec,d  #6
+exec,d  #5
+exec,d  #4
+exec,d  #3  We're now in row #3
+
+ifd0,sk #  Is there a "marker" here?
+adv,14  #  If so, ADVANCE out of loop
+exec,d  #2  If not, move down towards row #1
+exec,d  #1  This is row #1
+exec,r  #  advance to next column
+ret,14  #  repeat loop
+
+tag,14
+
+################################################
+##  Put a "cursor" at top left of data field  ##
+################################################
+
+exec,h  #  HOME
+exec,u  #  UP toward row 15
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u  # we're in row 15
+
+exec,d1 # set "cursor"
+
+
+#########################
+##  SEARCH FOR CURSOR  ## (This is the start of a BIG loop!)
+#########################
+
+
+tag,15   # SEARCH FOR CURSOR
+
+
+###      #  Search for cursor in row #15
+
+exec,h   #  HOME
+
+exec,u   #1  Move up toward row 15
+exec,u   #2
+exec,u   #3
+exec,u   #4
+exec,u   #5
+exec,u   #6
+exec,u   #7
+exec,u   #8
+exec,u   #9
+exec,u   #10
+exec,u   #11
+exec,u   #12
+exec,u   #13
+exec,u   #14
+exec,u   #15  -- This is row #15
+
+ifd0,sk
+adv,14
+
+exec,r
+exec,r
+exec,r
+exec,r
+ifd0,sk
+adv,14
+
+exec,r
+exec,r
+exec,r
+exec,r
+ifd0,sk
+adv,14
+
+exec,r
+exec,r
+exec,r
+exec,r
+ifd0,sk
+adv,14
+
+###      #  Search for cursor in row #9
+
+exec,h   #  HOME
+
+exec,u   #1  Move up toward row 9
+exec,u   #2
+exec,u   #3
+exec,u   #4
+exec,u   #5
+exec,u   #6
+exec,u   #7
+exec,u   #8
+exec,u   #9  --  This is row #9
+
+ifd0,sk
+adv,14
+
+exec,r
+exec,r
+exec,r
+exec,r
+ifd0,sk
+adv,14
+
+exec,r
+exec,r
+exec,r
+exec,r
+ifd0,sk
+adv,14
+
+exec,r
+exec,r
+exec,r
+exec,r
+
+#ifd0,sk  #  Since this is the last possible CURSOR position
+          #  I'm not even going to check to see if the
+          #  CURSOR is here
+
+#adv,14   # No need to advance to tag - merely fall through
+
+##  Done with SEARCH FOR CURSOR
+
+
+##############################
+##  DRAW CHARACTER routine  ##
+##############################
+
+tag,14
+
+exec,d   #  DOWN to character code
+
+         #######################
+         ##  Decode the code  ##
+         #######################
+
+ifd0,sk  #0
+adv,10
+exec,r
+ifd0,sk  #0
+adv,11
+exec,r
+ifd0,sk  #0
+adv,12
+exec,r
+ifd0,sk  #0
+adv,13
+
+
+#######################################################
+         #  0000  DRAW "0"
+
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+adv,9   #  DONE with "0"
+
+#######################################################
+tag,13   # 0001  DRAW "1"
+
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d1
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d1
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+adv,9   #  DONE with "1"
+
+#######################################################
+tag,12   # 001x
+
+exec,r
+ifd0,sk  #0
+adv,13
+
+#######################################################
+##       #  0010 -- DRAW "2"
+
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "2"
+
+#######################################################
+tag,13   #  0011 -- DRAW "3"
+
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "3"
+
+#######################################################
+tag,11   # 01xx
+
+exec,r
+ifd0,sk  #0
+adv,12
+exec,r
+ifd0,sk  #0
+adv,13
+
+#######################################################
+         #  0100 -- DRAW "4"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d  
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+adv,9   #  DONE with "4"
+
+#######################################################
+tag,13   #  0101 -- DRAW "5"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "5"
+
+#######################################################
+tag,12   # 011x
+
+exec,r
+ifd0,sk  #0
+adv,13
+
+#######################################################
+##       #  0110 -- DRAW "6"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+adv,9   #  DONE with "6"
+
+#######################################################
+tag,13   #  0111 -- DRAW "7"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "7"
+
+#######################################################
+
+tag,10  #1xxx - Search
+
+exec,r
+ifd0,sk  #0
+adv,11
+exec,r
+ifd0,sk  #0
+adv,12
+exec,r
+ifd0,sk  #0
+adv,13
+
+
+#######################################################
+         #  1000 -- DRAW "8"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "8"
+
+#######################################################
+tag,13   # 1001 -- DRAW "9'
+
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d1 #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "9"
+
+#######################################################
+tag,12   # 101x
+
+exec,r
+ifd0,sk  #0
+adv,13
+
+#######################################################
+##       #  1010 -- DRAW "A"
+
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d1
+exec,r
+exec,d1
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "A"
+
+#######################################################
+tag,13   #  1011 -- DRAW "B"
+
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "B"
+
+#######################################################
+tag,11   # 11xx
+
+exec,r
+ifd0,sk  #0
+adv,12
+exec,r
+ifd0,sk  #0
+adv,13
+
+#######################################################
+         #  1100 -- DRAW "C"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d  
+exec,d0  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+adv,9   #  DONE with "C"
+
+#######################################################
+tag,13   #  1101 -- DRAW "D"
+
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "D"
+
+#######################################################
+tag,12   # 111x
+
+exec,r
+ifd0,sk  #0
+adv,13
+
+#######################################################
+##       #  1110 -- DRAW "E"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "E"
+
+#######################################################
+tag,13   #  1111 -- DRAW "F"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+          #  DONE with "F"
+
+#adv,9  #  Merely let this fall through
+
+#######################################################
+
+
+######################
+##  ADVANCE CURSOR  ##
+######################
+
+tag,9  #  ADVANCE CURSOR routine
+
+###      #  Search for cursor in row #15
+
+exec,h   #  HOME
+
+exec,u   #1  Move up 15 positions -- this is #1
+exec,u   #2
+exec,u   #3
+
+exec,u   #4
+exec,u   #5
+exec,u   #6
+
+exec,u   #7
+exec,u   #8
+exec,u   #9
+
+exec,u   #10
+exec,u   #11
+exec,u   #12
+
+exec,u   #13
+exec,u   #14
+exec,u   #15  -- This is row #15
+
+ifd1,sk
+adv,8
+
+  exec,d0
+  exec,r
+  exec,r
+  exec,r
+  exec,r
+  exec,d1
+  ret,15
+
+tag,8
+exec,r
+exec,r
+exec,r
+exec,r
+ifd1,sk
+adv,8
+
+  exec,d0
+  exec,r
+  exec,r
+  exec,r
+  exec,r
+  exec,d1
+  ret,15
+
+tag,8
+exec,r
+exec,r
+exec,r
+exec,r
+ifd1,sk
+adv,8
+
+  exec,d0
+  exec,r
+  exec,r
+  exec,r
+  exec,r
+  exec,d1
+  ret,15
+
+tag,8
+exec,r
+exec,r
+exec,r
+exec,r
+ifd1,sk
+adv,8
+
+
+  exec,d0
+############  SWITCH ROWS! GO DOWN TO BOTTOM ROW!  #########
+
+  exec,h   #  HOME
+  exec,u   #  Move up towards row #9 -- this is #1
+  exec,u   #2
+  exec,u   #3
+  exec,u   #4
+  exec,u   #5
+  exec,u   #6
+  exec,u   #7
+  exec,u   #8
+  exec,u   #9  --  This is row #9
+  exec,d1
+  ret,15
+
+
+
+tag,8
+############  SWITCH ROWS! GO DOWN TO BOTTOM ROW!  #########
+
+exec,h   #  HOME
+exec,u   #  Move up towards row #9 -- this is #1
+  exec,u   #2
+  exec,u   #3
+  exec,u   #4
+  exec,u   #5
+  exec,u   #6
+  exec,u   #7
+  exec,u   #8
+  exec,u   #9  --  This is row #9
+ifd1,sk
+adv,8
+
+  exec,d0
+  exec,r
+  exec,r
+  exec,r
+  exec,r
+  exec,d1
+  ret,15
+
+tag,8
+exec,r
+exec,r
+exec,r
+exec,r
+ifd1,sk
+adv,8
+
+  exec,d0
+  exec,r
+  exec,r
+  exec,r
+  exec,r
+  exec,d1
+  ret,15
+
+tag,8
+exec,r
+exec,r
+exec,r
+exec,r
+ifd1,sk
+adv,8
+
+  exec,d0
+  exec,r
+  exec,r
+  exec,r
+  exec,r
+  exec,d1
+  ret,15
+
+tag,8
+exec,r
+exec,r
+exec,r
+exec,r
+
+  exec,d0  #  Clear ALL cursors
+
+#########################################
+
+##  While we're at it, let's remove that pointer thing in row #3
+##   then move pointer HOME
+
+exec,h
+
+exec,u
+exec,u
+exec,u
+
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+
+exec,d0
+
+exec,h
+
+##########################
+##                      ##
+##  That's it for now.  ##
+##                      ##
+##########################

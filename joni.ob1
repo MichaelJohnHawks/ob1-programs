@@ -1,0 +1,4250 @@
+########## "joni.ob1"
+########## "ob1" program for MJH One-Bit Machine Type 01
+##########   by Michael John Hawks
+##########    2020/02/xx
+##########
+#########################################################################
+##  This program simulates a four digit decimal integer calculator.
+##
+##  Boot up the program then ENTER the desired operation starting at
+##   the HOME position (0,0)
+##    i.e. -- 011<ENTER> for addition
+##  Hit <ENTER> again to run the program.
+##
+##  Hitting <ENTER> without entering a different operation will repeat
+##   the previous operation.
+##
+##  Of course, this program can be run over and over again for
+##   additional operations.
+##
+##  The CURSOR can be seen as a set bit above the top row.
+##
+##  Operations:
+##
+##  000 - "HI JONI"
+##  001 - Advance Cursor
+##  010 - Clear Bottom Row (Accumulator)
+##  011 - ADD
+##  100 - SUBTRACT
+##  101 - (+/-) Toggle Sign of Bottom Row (Accumulator)
+##  110 - Cycle through Digits at Cursor Position 
+##  111 - CLEAR ALL
+##
+##  HINT: To make what's happening on the display more obvious, use
+##    the "z" terminal command to change "0" to "." (<period>) 
+##     and "1" to "@" (<at sign>)
+##     i.e. -- z.@<ENTER>
+##      ...or use "z" to use any other characters you might prefer.
+#########################################################################
+##  This program is called "joni" because I needed a program to show
+##    to my wife that she could look at and understand what was going on.
+#########################################################################
+##  Geeky stuff:
+#########################################################################
+##  Flags, counters, and registers used by this program:
+##
+##  Row 15
+##   thru
+##  Row 10  -- USER register character image
+##    Row 15 displays the CURSOR
+##
+##  Row 9
+##   thru
+##  Row 4   -- ACCUMULATOR register character image
+##    Row 8 bit 0 displays the SIGN  ("1"=NEGATIVE, "0"=NON-NEGATIVE)
+##
+##  Row 3: Bit 0 is set to indicate highest-order bit, the others not set
+##  Row 2: USER register (binary-coded decimal)
+##  Row 1: ACCUMULATOR register (binary-coded decimal)
+##
+##  ROW 0:
+##
+##  bit 0   bit 0
+##  bit 1    thru
+##  bit 2   bit 2 -- USER COMMAND put here by the USER
+##  bit 3
+##  bit 4
+##  bit 5
+##  bit 6
+##  bit 7   -- when bit is set then "GARBAGE is EVERYWHERE!"
+##  bit 8   -- overflow flag
+##  bit 9
+##  bit 10  -- Indicated operation: "0"=ADD, "1"=SUBTRACT
+##  bit 11
+##  bit 12  -- SIGN of ACCUMULATOR ("1"=NEGATIVE, "0"=NON-NEGATIVE)
+##  bit 13
+##  bit 14  bits 14 and 15
+##  bit 15   indicate the CURSOR position (0 thru 3)
+##
+##  (Some of the other bits were used for something at some time but
+##     I later decided I didn't need them.)
+#########################################################################
+##  Displayed character set
+##   (you kinda hafta use your imagination to see these):
+##
+##  ("."=0, "@"=1)
+##
+##  "0" -- 0000 -- ..@.
+##                 .@.@
+##                 .@.@
+##                 .@.@
+##                 ..@.
+##                 ....
+##  "1" -- 0001 -- ..@.
+##                 ..@.
+##                 ..@.
+##                 ..@.
+##                 ..@.
+##                 ....
+##  "2" -- 0010 -- .@@.
+##                 ...@
+##                 ..@.
+##                 .@..
+##                 .@@@
+##                 ....
+##  "3" -- 0011 -- .@@.
+##                 ...@
+##                 .@@.
+##                 ...@
+##                 .@@.
+##                 ....
+##  "4" -- 0100 -- .@.@
+##                 .@.@
+##                 .@@@
+##                 ...@
+##                 ...@
+##                 ....
+##  "5" -- 0101 -- .@@@
+##                 .@..
+##                 .@@.
+##                 ...@
+##                 .@@.
+##                 ....
+##  "6" -- 0110 -- ..@@
+##                 .@..
+##                 .@@.
+##                 .@.@
+##                 ..@@
+##                 ....
+##  "7" -- 0111 -- .@@@
+##                 ...@
+##                 ..@.
+##                 .@..
+##                 .@..
+##                 ....
+##  "8" -- 1000 -- .@@@
+##                 .@.@
+##                 ..@.
+##                 .@.@
+##                 .@@@
+##                 ....
+##  "9" -- 1001 -- .@@.
+##                 .@.@
+##                 ..@@
+##                 ...@
+##                 .@@.
+##                 ....
+##  <sp> - 0101 -- ....
+##                 ....
+##                 ....
+##                 ....
+##                 ....
+##                 ....
+##  "H" -- 1011 -- .@.@
+##                 .@.@
+##                 .@@@
+##                 .@.@
+##                 .@.@
+##                 ....
+##  "J" -- 1100 -- .@@@
+##                 ...@
+##                 ...@
+##                 .@.@
+##                 ..@.
+##                 ....
+##  "N" -- 1101 -- .@.@
+##                 .@@@
+##                 .@@@
+##                 .@@@
+##                 .@.@
+##                 ....
+##  "?" -- 1110 -- .@@.
+##                 ...@
+##                 ..@.
+##                 ....
+##                 ..@.
+##                 ....
+##  "!" -- 1111 -- ..@.
+##                 ..@.
+##                 ..@.
+##                 ....
+##                 ..@.
+##                 ....
+#########################################################################
+##  p.s.--
+##  
+##  Working with binary coded decimal digits is a REAL MESS!
+##  If I had it to do all over again, I just plain wouldn't do it.
+##  Period.
+##
+##  So what do you think of that?
+#########################################################################
+
+
+###########  Here's the start of everything.
+
+###########  Look for USER COMMAND in the three left-most bits of row 0:
+
+exec,h
+exec,f0
+ifd1,f1  #1 (compliment = "0")
+exec,r
+ifd1,f1  #1 (compliment = "0")
+exec,r
+ifd1,f1  #1 (compliment = "0")
+iff0,sk
+adv,9
+
+## Put routine "000" (#0) here.
+
+#######################
+#######################
+######           ######
+######  HI JONI  ######
+######           ######
+#######################
+#######################
+
+exec,h
+exec,u
+exec,u
+ 
+
+exec,d1   #  H
+exec,r
+exec,d0
+exec,r
+exec,d1
+exec,r
+exec,d1
+
+exec,r    #  I
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+exec,r
+exec,d0
+
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+exec,r
+exec,d0
+
+
+exec,h
+exec,u
+
+
+exec,d1   #  J
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,r    #  0
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,r    #  N
+exec,d1
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,r    #  1
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+###########  Pre-load USER command with CLEAR ALL ("111")
+
+exec,h    #00
+exec,d1
+exec,r    #01
+exec,d1
+exec,r    #02
+exec,d1
+exec,r    #03
+exec,r    #04
+exec,r    #05
+exec,r    #06
+
+###########  Set flags to indicate GARBAGE in the registers.
+
+exec,r    #07
+exec,d1   #  to indicate there's GARBAGE in the upper register
+exec,r    #08
+exec,d1   #  to indicate there's GARBAGE in the ACCUMULATOR
+
+exec,h
+
+adv,8
+
+##********************************************
+
+tag,9
+exec,h
+exec,f0
+ifd1,f1  #1 (compliment = "0")
+exec,r
+ifd1,f1  #1 (compliment = "0")
+exec,r
+ifd0,f1  #0 (compliment = "1")
+iff0,sk
+adv,9
+
+## Put routine "001" (#1) here.
+
+##############################
+##############################
+######                  ######
+######  Advance Cursor  ######
+######                  ######
+##############################
+##############################
+
+
+
+###########  First check for GARBAGE
+
+###########  GARBAGE PATROL  ############
+
+exec,h
+exec,f0
+
+exec,r    #01
+exec,r    #02
+exec,r    #03
+exec,r    #04
+exec,r    #05
+exec,r    #06
+exec,r    #07
+exec,fd   #  Load "FLAG" with whatever is there.
+exec,r    #08
+ifd1,f1   #  and if bit 8 is SET then make sure the "FLAG" is SET.
+
+iff0,sk
+adv,8
+
+###########  DONE WITH GARBAGE PATROL
+
+###########  Now it's okay to do your business
+
+
+exec,h
+
+#########  Proceed toward lowest bit of cursor counter
+
+exec,r  # #01
+exec,r  # #02
+exec,r  # #03
+exec,r  # #04
+exec,r  # #05
+exec,r  # #06
+exec,r  # #07
+exec,r  # #08
+exec,r  # #09
+exec,r  # #10
+exec,r  # #11
+exec,r  # #12
+exec,r  # #13
+exec,r  # #14
+exec,r  # #15 <-- HERE WE ARE!
+
+exec,dc # Compliment lower bit
+ifd0,sk # SKIP if it changed to "0"
+adv,2   # Otherwise JUMP OUT and move on
+exec,l  # Move pointer left to higher bit
+exec,dc # Compliment higher bit
+
+tag,2
+
+adv,8
+
+##********************************************
+
+tag,9
+exec,h
+exec,f0
+ifd1,f1  #1 (compliment = "0")
+exec,r
+ifd0,f1  #0 (compliment = "1")
+exec,r
+ifd1,f1  #1 (compliment = "0")
+iff0,sk
+adv,9
+
+## Put routine "010" (#2) here.
+
+###########################################
+##                                       ##
+## >>>>>>>>  CLEAR ACCUMULATOR  <<<<<<<< ##
+##                                       ##
+###########################################
+
+###########  First check for GARBAGE in upper register (bit 7, row 0)
+
+exec,h
+
+exec,r    #01
+exec,r    #02
+exec,r    #03
+exec,r    #04
+exec,r    #05
+exec,r    #06
+exec,r    #07
+
+ifd0,sk
+adv,8
+
+###########  Now it's okay to do your business
+
+exec,h
+exec,u
+
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+########## Make sure error flags are clear
+
+exec,h
+exec,r    #01
+exec,r    #02
+exec,r    #03
+exec,r    #04
+exec,r    #05
+exec,r    #06
+exec,r    #07
+exec,d0
+exec,r
+exec,d0
+
+exec,h
+
+adv,8
+
+##********************************************
+
+tag,9
+exec,h
+exec,f0
+ifd1,f1  #1 (compliment = "0")
+exec,r
+ifd0,f1  #0 (compliment = "1")
+exec,r
+ifd0,f1  #0 (compliment = "1")
+iff0,sk
+adv,9
+
+## Put routine "011" (#3) here.
+
+#############################
+#############################
+######                 ######
+######  >>>  ADD  <<<  ######
+######                 ######
+#############################
+#############################
+
+
+###########  First check for GARBAGE
+
+
+###########  GARBAGE PATROL  ############
+
+exec,h
+exec,f0
+
+exec,r    #01
+exec,r    #02
+exec,r    #03
+exec,r    #04
+exec,r    #05
+exec,r    #06
+exec,r    #07
+exec,fd   #  Load "FLAG" with whatever is there.
+exec,r    #08
+ifd1,f1   #  and if bit 8 is SET then make sure the "FLAG" is SET.
+
+iff0,sk
+adv,8
+
+###########  DONE WITH GARBAGE PATROL
+
+
+###########  Now it's okay to do your business
+
+
+##  Right here I'm putting the "prequel" to
+##   combined ADD/SUBTRACT
+
+##  Start ADD  <---------------------------------------- ADDITION
+
+##  CLEAR bit 9 row 0 for possible future usage and
+##    CLEAR bit 10 row 0 to indicate ADDITION was called
+
+exec,h
+
+exec,r   #01
+exec,r   #02
+exec,r   #03
+exec,r   #04
+exec,r   #05
+exec,r   #06
+exec,r   #07
+exec,r   #08
+exec,r   #09
+exec,d0
+exec,r   #10
+exec,d0
+
+adv,10   # GO TO COMMON ADD/SUBTRACT
+
+##********************************************
+
+tag,9
+exec,h
+exec,f0
+ifd0,f1  #0 (compliment = "1")
+exec,r
+ifd1,f1  #1 (compliment = "0")
+exec,r
+ifd1,f1  #1 (compliment = "0")
+iff0,sk
+adv,9
+
+## Put routine "100" (#4) here.
+
+##############################
+##############################
+######                  ######
+###### >>> SUBTRACT <<< ######
+######                  ######
+##############################
+##############################
+
+
+###########  First check for GARBAGE
+
+
+###########  GARBAGE PATROL  ############
+
+exec,h
+exec,f0
+
+exec,r    #01
+exec,r    #02
+exec,r    #03
+exec,r    #04
+exec,r    #05
+exec,r    #06
+exec,r    #07
+exec,fd   #  Load "FLAG" with whatever is there.
+exec,r    #08
+ifd1,f1   #  and if bit 8 is SET then make sure the "FLAG" is SET.
+
+iff0,sk
+adv,8
+
+###########  DONE WITH GARBAGE PATROL
+
+
+###########  Now it's okay to do your business
+
+
+##  Start SUB  <---------------------------------------- SUBTRACTION
+
+##  CLEAR bit 9 row 0 for possible future usage and
+##    SET bit 10 row 0 to indicate SUBTRACTION was called
+
+exec,h
+
+exec,r   #01
+exec,r   #02
+exec,r   #03
+exec,r   #04
+exec,r   #05
+exec,r   #06
+exec,r   #07
+exec,r   #08
+exec,r   #09
+exec,d0
+exec,r   #10
+exec,d1
+
+###############################
+
+tag,10   #  COMMON ADD/SUBTRACT
+
+###############################
+
+##  We are already at bit 10 row 0, right were we want to be
+
+exec,fd
+exec,r
+#ifd1,fc ---> NOTE! Not needed! Top register is ALWAYS non-negative!
+exec,r
+ifd1,fc
+
+##  The above little trick yields
+##    FLAG=="0" for true ADDITION and
+##    FLAG=="1" for true subtraction
+
+iff0,sk
+adv,11   #  JUMP to true SUBTRACTION
+
+##  Continue with true addition...
+
+##  TRUE
+#############################
+#############################
+######                 ######
+######  >>>  ADD  <<<  ######
+######                 ######
+#############################
+#############################
+
+### unsigned Addition program:
+
+exec,f0 # clear the FLAG
+
+######### Initially clear row 3 and set the leftmost bit to "1"
+#########  to mark the boundary (to prevent an out-of-bounds
+#########   run-time exception)
+
+exec,h
+exec,u
+exec,u
+exec,u
+exec,d1
+
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+######### Initial step DONE.
+
+exec,h  # Move pointer to HOME position (0,0)
+exec,r  # Begin moving toward the lowest order bit...
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r  # ...okay! we're there! This is the lowest order bit of the
+        #     bottom row. We're at position (0,15).
+
+exec,u  # This is row #1, the ACCUMULATOR
+exec,u  # Move up to the "B" register, the ADDEND
+
+exec,f0 # CLEAR THE FLAG PRIOR TO ENTERING THE LOOP!
+        # (In an earlier version I was forgetting to do this
+        #  and I got all kinds of bad results)
+
+###################################
+#########  ADDITION loop  #########
+###################################
+
+tag,1   # tag,1 marks the starting point of the ADDITION loop
+
+#########################################################################
+##  Now let's discuss the ADDITION algorithm.
+##  
+##  One logical approach toward building an alorithm is to construct
+##  a TRUTH TABLE that lists the initial possible conditions on the
+##  left side and the desired outcomes on the right side. Here's one
+##  possible TRUTH TABLE:  
+##  
+##  A = Accumulator (indicated bit in row 0)
+##  B = Addend (indicated bit in row 1)
+##  F = FLAG (the "carry" bit)
+##  
+##  (Before) ::(After)::  (Action)
+##  F0 B0 A0 ::F1 A1  ::
+##  **************************************
+##  **************************************
+##   0  0  0 :: 0  0  :: DO NOTHING!
+##   0  0  1 :: 0  1  ::
+##  **************************************
+##   0  1  0 :: 0  1  :: F1=A0, A1=NOT(A0)
+##   0  1  1 :: 1  0  :: 
+##   1  0  0 :: 0  1  :: 
+##   1  0  1 :: 1  0  :: 
+##  **************************************
+##   1  1  0 :: 1  0  :: DO NOTHING!
+##   1  1  1 :: 1  1  :: 
+##  **************************************
+##  
+##  
+##  This looks do-able. Let's go for it!
+#########################################################################
+
+  iff1,sk # SKIP next if FLAG is "1"
+
+  adv,2   # at this point FLAG is "0"
+          # advance to see what to do next
+
+  ifd1,sk # at this point  FLAG is "1"
+          # SKIP next if ADDEND bit is "1"
+
+  adv,3   # at this point FLAG is "1", ADDEND bit is "0"
+          # so some kind of ACTION is required
+
+  adv,4   # at this point FLAG is "1", ADDEND bit is "1"
+          # "DO NOTHING" condition exists, so exit algorithm
+
+tag,2     # at this point FLAG is "0"
+
+  ifd1,sk # SKIP next if ADDEND bit is "1"
+
+  adv,4   # at this point FLAG is "0", ADDEND bit is "0"
+          # "DO NOTHING" condition exists, so exit algorithm
+          # else:
+          # FLAG is "0", ADDEND bit is "1"
+          # some kind of ACTION is required
+          # so fall through to the required ACTION
+
+tag,3     # at this point the algorithm requires ACTION
+
+  exec,d  # move pointer down to the ACCUMULATOR bit
+  exec,fd # load FLAG with ACCUMULATOR bit
+  exec,dc # compliment ACCUMULATOR bit
+  exec,u  # move back up to the ADDEND register
+
+tag,4     # Done with algorithm
+
+#########################################################################
+#########################################################################
+##
+##  ATTENTION!
+##
+##  GEEK ALERT!
+##
+##  I'm going to attempt something I probably shouldn't do.
+##
+##  I'm going to attempt to convert this program from binary to decimal
+##  addition.
+##
+##  Here goes nothing!
+##
+#########################################################################
+#########################################################################
+
+  exec,l  # move pointer to next position, then repeat algorithm
+
+## Here's the same algorithm all over again:
+
+  iff1,sk # SKIP next if FLAG is "1"
+
+  adv,2   # at this point FLAG is "0"
+          # advance to see what to do next
+
+  ifd1,sk # at this point  FLAG is "1"
+          # SKIP next if ADDEND bit is "1"
+
+  adv,3   # at this point FLAG is "1", ADDEND bit is "0"
+          # so some kind of ACTION is required
+
+  adv,4   # at this point FLAG is "1", ADDEND bit is "1"
+          # "DO NOTHING" condition exists, so exit algorithm
+
+tag,2     # at this point FLAG is "0"
+
+  ifd1,sk # SKIP next if ADDEND bit is "1"
+
+  adv,4   # at this point FLAG is "0", ADDEND bit is "0"
+          # "DO NOTHING" condition exists, so exit algorithm
+          # else:
+          # FLAG is "0", ADDEND bit is "1"
+          # some kind of ACTION is required
+          # so fall through to the required ACTION
+
+tag,3     # at this point the algorithm requires ACTION
+
+  exec,d  # move pointer down to the ACCUMULATOR bit
+  exec,fd # load FLAG with ACCUMULATOR bit
+  exec,dc # compliment ACCUMULATOR bit
+  exec,u  # move back up to the ADDEND register
+
+tag,4     # Done with algorithm the second time
+
+#########################################################################
+
+  exec,l  # move pointer to next position, then repeat algorithm AGAIN!
+
+## Here's the same algorithm all over again:
+
+  iff1,sk # SKIP next if FLAG is "1"
+
+  adv,2   # at this point FLAG is "0"
+          # advance to see what to do next
+
+  ifd1,sk # at this point  FLAG is "1"
+          # SKIP next if ADDEND bit is "1"
+
+  adv,3   # at this point FLAG is "1", ADDEND bit is "0"
+          # so some kind of ACTION is required
+
+  adv,4   # at this point FLAG is "1", ADDEND bit is "1"
+          # "DO NOTHING" condition exists, so exit algorithm
+
+tag,2     # at this point FLAG is "0"
+
+  ifd1,sk # SKIP next if ADDEND bit is "1"
+
+  adv,4   # at this point FLAG is "0", ADDEND bit is "0"
+          # "DO NOTHING" condition exists, so exit algorithm
+          # else:
+          # FLAG is "0", ADDEND bit is "1"
+          # some kind of ACTION is required
+          # so fall through to the required ACTION
+
+tag,3     # at this point the algorithm requires ACTION
+
+  exec,d  # move pointer down to the ACCUMULATOR bit
+  exec,fd # load FLAG with ACCUMULATOR bit
+  exec,dc # compliment ACCUMULATOR bit
+  exec,u  # move back up to the ADDEND register
+
+tag,4     # Done with algorithm the third time
+
+#########################################################################
+
+  exec,l  # move pointer to next position, then do algorithm 4th time:
+
+## Here's the same algorithm all over again:
+
+  iff1,sk # SKIP next if FLAG is "1"
+
+  adv,2   # at this point FLAG is "0"
+          # advance to see what to do next
+
+  ifd1,sk # at this point  FLAG is "1"
+          # SKIP next if ADDEND bit is "1"
+
+  adv,3   # at this point FLAG is "1", ADDEND bit is "0"
+          # so some kind of ACTION is required
+
+  adv,4   # at this point FLAG is "1", ADDEND bit is "1"
+          # "DO NOTHING" condition exists, so exit algorithm
+
+tag,2     # at this point FLAG is "0"
+
+  ifd1,sk # SKIP next if ADDEND bit is "1"
+
+  adv,4   # at this point FLAG is "0", ADDEND bit is "0"
+          # "DO NOTHING" condition exists, so exit algorithm
+          # else:
+          # FLAG is "0", ADDEND bit is "1"
+          # some kind of ACTION is required
+          # so fall through to the required ACTION
+
+tag,3     # at this point the algorithm requires ACTION
+
+  exec,d  # move pointer down to the ACCUMULATOR bit
+  exec,fd # load FLAG with ACCUMULATOR bit
+  exec,dc # compliment ACCUMULATOR bit
+  exec,u  # move back up to the ADDEND register
+
+tag,4     # Done with algorithm the fourth time
+
+#########################################################################
+##  So far, so good. But now we need to convert from hexadecimal
+##  to decimal. If these four bits taken together (I call it a "nibble")
+##  is greater than nine ("1001" in binary) or if the FLAG is set, then:
+##
+##    Clear the FLAG
+##    Add 6 to the "nibble" (ignore carry if it occurs)
+##    Set the FLAG (for the next round)
+##
+##  Yep. It works.
+#########################################################################
+
+##  TEST to see if we need to adjust for decimal:
+
+  exec,d   #  Move pointer down to ACCUMULATOR
+
+  iff0,sk  #  Is the FLAG reset to "0"?
+  adv,2  #  If not, ADVANCE to conversion algorithm
+  ifd1,sk  #  Is this 4-bit "nibble" greater than or equal to 8 ("1000")?
+  adv,5  #  If not, we don't need to convert
+  exec,r   #  move pointer one bit to the right
+  ifd0,sk  #  Is "nibble" less than 12 ("1100")?
+  adv,3  #  If not, ADVANCE to conversion algorithm
+  exec,r   #  move pointer one bit to the right
+  ifd0,sk  #  Is "nibble" less than 10 ("1010")?
+  adv,4  #  If not, ADVANCE to conversion algorithm
+
+  exec,l
+  exec,l
+  adv,5  #  We don't need to adjust
+
+tag,2
+  exec,r
+tag,3
+  exec,r
+tag,4
+  exec,r
+
+#############################################
+##    Conversion algorithm:                ##
+##                                         ##
+##    Clear the FLAG                       ##
+##    Add 6 (binary "0110")                ##
+##    Set the FLAG (for the next round)    ##
+#############################################
+##    A few things to notice:              ##
+##                                         ##
+##    When adding "0110" we don't need to  ##
+##    do ANYTHING to the lowest order bit  ##
+##    (bit 0) because the lowest order bit ##
+##    of "0110" is "0". So just blow by it ##
+##    and consider the next bit.           ##
+##                                         ##
+##    There will not be a "carry" to worry ##
+##    about when considering the next bit  ##
+##    (bit 1).                             ##
+##                                         ##
+##    For the next bit after that (bit 2)  ##
+##    we'll need to consider everything    ##
+##    and the same for the highest order   ##
+##    bit.                                 ##
+#############################################
+
+  exec,f0
+
+##  STEP 1: "Blow by" lowest order bit
+
+  exec,l
+
+##  DONE with bit 0 (lowest order bit of "nibble")
+
+##  STEP 2: There's no residual carry, just add 1.
+##          Do that by loading FLAG with data bit
+##          then compliment the data bit
+
+  exec,fd
+  exec,dc
+  exec,l
+
+##  DONE with bit 1
+
+##  STEP 3: For the next bit it's just like the
+##          ADDITION algorithm when the ADDEND bit is "1"
+  
+  iff0,sk # SKIP next if FLAG is "0"
+
+  adv,3   # at this point FLAG is "1", ADDEND bit is "1"
+          # "DO NOTHING" condition exists, so exit algorithm
+
+  exec,fd # load FLAG with ACCUMULATOR bit
+  exec,dc # compliment ACCUMULATOR bit
+
+tag,3     # That's it for bit 2
+
+  exec,l
+
+##  DONE with bit 2
+
+##  STEP 4: For the highest order bit it's just like the
+##          ADDITION algorithm when the ADDEND bit is "0"
+
+  iff1,sk # SKIP next if FLAG is "1"
+
+  adv,4   # at this point FLAG is "0", ADDEND bit is "0"
+          # "DO NOTHING" condition exists, so go to last step
+
+  exec,dc # compliment ACCUMULATOR bit
+
+         # That's it for bit 3 (highest order bit of "nibble")
+
+tag,4 # Now there is just one more step:
+
+  exec,f1 # Don't forget to set the FLAG to "1"!!!
+
+##  Don't move pointer to the left this time
+
+#########################################################################
+#########################################################################
+tag,5    # Done with conversion algorithm
+#########################################################################
+#########################################################################
+  exec,u  # Move back up to the ADDEND register.
+
+
+######### Now we need to check to see if this is the highest
+#########  order bit. If it is, we're done with the main big loop
+#########   else advance pointer left one bit and repeat loop.
+
+  exec,u  # Move up to next row. "1" signifies the highest-order bit.
+
+
+
+  ifd0,sk # SKIP the next instruction if that bit is "0".
+
+  adv,4   # Jump out of the loop (we're going forward, not back!).
+
+  exec,d  # Since we haven't yet reached the highest-order bit,
+          #  move back down.
+
+  exec,l  # Move left to the next bit position
+
+  ret,1   # Go back and repeat the loop.
+
+tag,4     # At this point we're pretty much done. (I KNOW I'm re-using
+          #  "tag,4." So sue me.
+          #    Besides, tags are valuable therefore I like to recycle!)
+
+
+###########  What's left to do is check to see if an overflow occurred
+###########    and do something about it if it did.
+###########
+###########  I guess what we'll do in the case of an overflow is to
+###########    set the ACCUMULATOR OVERFLOW FLAG (bit 8, row 0)
+###########      and then display question marks ("????") in the
+###########        second row of the screen display.
+###########
+###########  Doesn't that sound like fun? Sure it does!
+
+
+iff1,sk   #  Did an overflow occur?
+adv,1     #  If not, JUMP to the CLEAN-UP section.
+          #  If FLAG=="1" proceed as follows:
+
+
+###########  Find ACCUMULATOR OVERFLOW FLAG (bit 8, row 0):
+
+exec,h
+
+exec,r    #01
+exec,r    #02
+exec,r    #03
+exec,r    #04
+exec,r    #05
+exec,r    #06
+exec,r    #07
+exec,r    #08
+
+exec,d1   #  SET ACCUMULATOR OVERFLOW FLAG (bit 8, row 0) to "1"
+
+###########  Find ACCUMULATOR REGISTER (beginning of row 1):
+
+exec,h
+exec,u
+
+###########  Put in the code for four question marks ("?" = "1110")
+
+exec,d1   #  "?" (the first one)
+exec,r
+exec,d1
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+
+exec,d1   #  "?" (the second one)
+exec,r
+exec,d1
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+
+exec,d1   #  "?" (the third one)
+exec,r
+exec,d1
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+
+exec,d1   #  "?" (the fourth one)
+exec,r
+exec,d1
+exec,r
+exec,d1
+exec,r
+exec,d0
+
+tag,1   #  CLEAN-UP:
+
+##  CLEAR that annoying bit at the beginning of row 3:
+
+exec,h
+exec,u
+exec,u
+exec,u
+exec,d0
+exec,h
+
+##  Also CLEAR the FLAG because it is annoying
+
+exec,f0
+
+###############################################################
+## All done with 4 digit decimal unsigned integer addition!  ##
+###############################################################
+
+adv,8
+
+###############################################################################
+
+tag,11   #  true SUBTRACTION
+
+##  TRUE
+##############################
+##############################
+######                  ######
+###### >>> SUBTRACT <<< ######
+######                  ######
+##############################
+##############################
+
+### unsigned Subtraction program:
+
+exec,f0 # clear the FLAG
+
+######### Initially clear row 3 and set the leftmost bit to "1"
+#########  to mark the boundary (to prevent an out-of-bounds
+#########   run-time exception)
+
+exec,h
+exec,u
+exec,u
+exec,u
+exec,d1
+
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+######### Initial step DONE.
+
+exec,h  # Move pointer to HOME position (0,0)
+exec,r  # Begin moving toward the lowest order bit...
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r  # ...okay! we're there! This is the lowest order bit of the
+        #     bottom row. We're at position (0,15).
+
+exec,u  # This is row #1, the ACCUMULATOR
+exec,u  # Move up to the "B" register, the SUBTRAHEND (row 2)
+
+exec,f0 # CLEAR THE FLAG PRIOR TO ENTERING THE LOOP!
+        # (In an earlier version I was forgetting to do this
+        #  and I got all kinds of bad results)
+
+######################################
+#########  SUBTRACTION loop  #########
+######################################
+
+tag,1   # tag,1 marks the starting point of the SUBTRACTION loop
+
+#########################################################################
+##  Now let's discuss the SUBTRACTION algorithm.
+##  
+##  One logical approach toward building an alorithm is to construct
+##  a TRUTH TABLE that lists the initial possible conditions on the
+##  left side and the desired outcomes on the right side. Here's one
+##  possible TRUTH TABLE:  
+##  
+##  A = ACCUMULATOR (indicated bit in row 0)
+##  S = SUBTRAHEND (indicated bit in row 1)
+##  F = FLAG (the "carry" bit)
+##  
+##  (Before) ::(After)::  (Action)
+##  F0 S0 A0 ::F1 A1  ::
+##  *******************************************
+##  *******************************************
+##   0  0  0 :: 0  0  :: DO NOTHING!
+##   0  0  1 :: 0  1  ::
+##  *******************************************
+##   0  1  0 :: 0  1  ::
+##   0  1  1 :: 1  0  :: A1=NOT(A0)
+##   1  0  0 :: 0  1  ::   F1=A1
+##   1  0  1 :: 1  0  :: 
+##  *******************************************
+##   1  1  0 :: 1  0  :: DO NOTHING!
+##   1  1  1 :: 1  1  :: 
+##  *******************************************
+##  
+##  
+##  This looks do-able. Let's go for it!
+#########################################################################
+
+  iff1,sk # SKIP next if FLAG is "1"
+
+  adv,2   # at this point FLAG is "0"
+          # advance to see what to do next
+
+  ifd1,sk # at this point  FLAG is "1"
+          # SKIP next if SUBTRAHEND bit is "1"
+
+  adv,3   # at this point FLAG is "1", SUBTRAHEND bit is "0"
+          # so some kind of ACTION is required
+
+  adv,4   # at this point FLAG is "1", SUBTRAHEND bit is "1"
+          # "DO NOTHING" condition exists, so exit algorithm
+
+tag,2     # at this point FLAG is "0"
+
+  ifd1,sk # SKIP next if SUBTRAHEND bit is "1"
+
+  adv,4   # at this point FLAG is "0", SUBTRAHEND bit is "0"
+          # "DO NOTHING" condition exists, so exit algorithm
+          # else:
+          # FLAG is "0", SUBTRAHEND bit is "1"
+          # some kind of ACTION is required
+          # so fall through to the required ACTION
+
+tag,3     # at this point the algorithm requires ACTION
+
+  exec,d  # move pointer down to the ACCUMULATOR bit
+  exec,dc # compliment ACCUMULATOR bit
+  exec,fd # load FLAG with ACCUMULATOR bit
+  exec,u  # move back up to the SUBTRAHEND register
+
+tag,4     # Done with algorithm
+
+#########################################################################
+#########################################################################
+##
+##  ATTENTION!
+##
+##  GEEK ALERT!
+##
+##  I'm going to attempt something I probably shouldn't do.
+##
+##  I'm going to attempt to convert this program from binary to decimal
+##  subtraction.
+##
+##  Here goes nothing!
+##
+#########################################################################
+#########################################################################
+
+  exec,l  # move pointer to next position, then repeat algorithm
+
+## Here's the same algorithm all over again:
+
+  iff1,sk # SKIP next if FLAG is "1"
+
+  adv,2   # at this point FLAG is "0"
+          # advance to see what to do next
+
+  ifd1,sk # at this point  FLAG is "1"
+          # SKIP next if SUBTRAHEND bit is "1"
+
+  adv,3   # at this point FLAG is "1", SUBTRAHEND bit is "0"
+          # so some kind of ACTION is required
+
+  adv,4   # at this point FLAG is "1", SUBTRAHEND bit is "1"
+          # "DO NOTHING" condition exists, so exit algorithm
+
+tag,2     # at this point FLAG is "0"
+
+  ifd1,sk # SKIP next if SUBTRAHEND bit is "1"
+
+  adv,4   # at this point FLAG is "0", SUBTRAHEND bit is "0"
+          # "DO NOTHING" condition exists, so exit algorithm
+          # else:
+          # FLAG is "0", SUBTRAHEND bit is "1"
+          # some kind of ACTION is required
+          # so fall through to the required ACTION
+
+tag,3     # at this point the algorithm requires ACTION
+
+  exec,d  # move pointer down to the ACCUMULATOR bit
+  exec,dc # compliment ACCUMULATOR bit
+  exec,fd # load FLAG with ACCUMULATOR bit
+  exec,u  # move back up to the SUBTRAHEND register
+
+tag,4     # Done with algorithm the second time
+
+#########################################################################
+
+  exec,l  # move pointer to next position, then repeat algorithm
+
+## Here's the same algorithm all over again:
+
+  iff1,sk # SKIP next if FLAG is "1"
+
+  adv,2   # at this point FLAG is "0"
+          # advance to see what to do next
+
+  ifd1,sk # at this point  FLAG is "1"
+          # SKIP next if SUBTRAHEND bit is "1"
+
+  adv,3   # at this point FLAG is "1", SUBTRAHEND bit is "0"
+          # so some kind of ACTION is required
+
+  adv,4   # at this point FLAG is "1", SUBTRAHEND bit is "1"
+          # "DO NOTHING" condition exists, so exit algorithm
+
+tag,2     # at this point FLAG is "0"
+
+  ifd1,sk # SKIP next if SUBTRAHEND bit is "1"
+
+  adv,4   # at this point FLAG is "0", SUBTRAHEND bit is "0"
+          # "DO NOTHING" condition exists, so exit algorithm
+          # else:
+          # FLAG is "0", SUBTRAHEND bit is "1"
+          # some kind of ACTION is required
+          # so fall through to the required ACTION
+
+tag,3     # at this point the algorithm requires ACTION
+
+  exec,d  # move pointer down to the ACCUMULATOR bit
+  exec,dc # compliment ACCUMULATOR bit
+  exec,fd # load FLAG with ACCUMULATOR bit
+  exec,u  # move back up to the SUBTRAHEND register
+
+tag,4     # Done with algorithm the third time
+
+#########################################################################
+
+  exec,l  # move pointer to next position, then repeat algorithm
+
+## Here's the same algorithm all over again:
+
+  iff1,sk # SKIP next if FLAG is "1"
+
+  adv,2   # at this point FLAG is "0"
+          # advance to see what to do next
+
+  ifd1,sk # at this point  FLAG is "1"
+          # SKIP next if SUBTRAHEND bit is "1"
+
+  adv,3   # at this point FLAG is "1", SUBTRAHEND bit is "0"
+          # so some kind of ACTION is required
+
+  adv,4   # at this point FLAG is "1", SUBTRAHEND bit is "1"
+          # "DO NOTHING" condition exists, so exit algorithm
+
+tag,2     # at this point FLAG is "0"
+
+  ifd1,sk # SKIP next if SUBTRAHEND bit is "1"
+
+  adv,4   # at this point FLAG is "0", SUBTRAHEND bit is "0"
+          # "DO NOTHING" condition exists, so exit algorithm
+          # else:
+          # FLAG is "0", SUBTRAHEND bit is "1"
+          # some kind of ACTION is required
+          # so fall through to the required ACTION
+
+tag,3     # at this point the algorithm requires ACTION
+
+  exec,d  # move pointer down to the ACCUMULATOR bit
+  exec,dc # compliment ACCUMULATOR bit
+  exec,fd # load FLAG with ACCUMULATOR bit
+  exec,u  # move back up to the SUBTRAHEND register
+
+tag,4     # Done with algorithm the fourth time
+
+
+
+####################################################
+####################################################
+##                                                ##
+##  ********************************************  ##
+##  ********************************************  ##
+##  **                                        **  ##
+##  **  NEW subtraction adjustment algorithm  **  ##
+##  **                                        **  ##
+##  ********************************************  ##
+##  ********************************************  ##
+##                                                ##
+####################################################
+####################################################
+
+##  Here's the new SUBTRACTION ADJUSTMENT algorithm:
+##
+##  If there is no "carry" (i.e. FLAG is "0") then no problem
+##    so merely move on
+##  otherwise subtract 6 ("0110") from the 4-bit "nibble"
+##    and at the end remember to SET the carry FLAG!!!
+
+
+  exec,d   #  Move pointer down to ACCUMULATOR
+
+  iff1,sk  # If FLAG is set to "1" then SKIP
+adv,5      #  otherwise if FLAG="0" merely move on
+           #    and ignore adjustment
+
+           ## Now we need to clear the flag and subtract "0110"
+
+  exec,f0  #  Clear FLAG
+
+##  BIT 0: (pretend we are subtracting "0")
+
+  exec,r
+  exec,r
+  exec,r
+
+## DO NOTHING! REPEAT: DO NOTHING!!!!!
+
+##  BIT 1: (pretend we are subtracting "1" with no borrow)
+
+  exec,l
+
+  exec,dc
+  exec,fd
+
+tag,4     # Done with BIT 1, start BIT 2
+
+## BIT 2: (pretend we are subtracting "1" with borrow status either way)
+
+  exec,l
+
+  iff0,sk # SKIP next if FLAG is "0"
+
+  adv,4   # at this point FLAG is "1", SUBTRAHEND bit is "1"
+          # "DO NOTHING" condition exists, so exit this step
+
+  exec,dc # at this point FLAG is "0" so compliment ACCUMULATOR bit
+  exec,fd # load FLAG with ACCUMULATOR bit
+
+tag,4     # Done with BIT 2, start BIT 3
+
+## BIT 3 (highest order bit of "nibble")
+##       (pretend we are subtracting "0" with borrow status either way)
+
+  exec,l
+
+  iff1,sk
+  adv,4
+  exec,dc
+  exec,fd
+
+tag,4     # Almost done with conversion algorithm
+
+  exec,f1   # Remember to set the FLAG!!!
+
+#########################################################################
+#########################################################################
+tag,5    # Done with conversion algorithm
+#########################################################################
+#########################################################################
+
+  exec,u  # Move back up to the SUBTRAHEND register.
+
+
+######### Now we need to check to see if this is the highest
+#########  order bit. If it is, we're done with the main big loop
+#########   else advance pointer left one bit and repeat loop.
+
+  exec,u  # Move up to next row. "1" signifies the highest-order bit.
+
+
+
+  ifd0,sk # SKIP the next instruction if that bit is "0".
+
+  adv,4   # Jump out of the loop (we're going forward, not back!).
+
+  exec,d  # Since we haven't yet reached the highest-order bit,
+          #  move back down.
+
+  exec,l  # Move left to the next bit position
+
+  ret,1   # Go back and repeat the loop.
+
+tag,4     # At this point we're all done. (I KNOW I'm re-using tag,4.
+          #  So sue me.
+          #   Besides, tags are valuable therefore I like to recycle!)
+
+#########################################################################
+#########################################################################
+##  Okay. We're done with the big unsigned integer subtraction program.
+##
+##  Now we need to figure out what happened.
+##
+##  If at this point the FLAG is "0" then everything is good and I guess
+##  we can move on.
+##
+##  I think. I hope so, anyway.
+##
+##  But if the FLAG is "1" we've got trouble. When FLAG=="1" there was an
+##  underflow and we have to adjust the result by subtracting the result
+##  from 0, then toggling the sign of the accumulator.
+##
+##  Doing this is a big mess. Here we go:
+#########################################################################
+#########################################################################
+
+iff1,sk  #  Is the FLAG equal to "1"?
+adv,13   #  If not, go to final CLEAN-UP.
+         #  If the FLAG does equal "1" proceed as follows:
+
+
+#   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#   !!                                              !!
+#   !!  This is the beginning of a weird endeavor!  !!
+#   !!                                              !!
+#   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+##########  Find the "underflow" flag (bit 9, row 0):
+
+exec,h
+exec,r   #01
+exec,r   #02
+exec,r   #03
+exec,r   #04
+exec,r   #05
+exec,r   #06
+exec,r   #07
+exec,r   #08
+exec,r   #09
+
+exec,dc  #  Compliment the  "underflow" bit (bit 9, row 0)
+
+ifd1,sk  #  Is the "underflow" bit set to "1"?
+adv,12   #  If not, go to RESTORE REGISTERS.
+         #  If the FLAG does equal "1" proceed as follows:
+
+##########  First copy all of row #2 up to row #4
+
+exec,h
+exec,u
+exec,u
+
+exec,fd  #00
+exec,u
+exec,u
+exec,df
+exec,d
+exec,d
+exec,r
+
+exec,fd  #01
+exec,u
+exec,u
+exec,df
+exec,d
+exec,d
+exec,r
+
+exec,fd  #02
+exec,u
+exec,u
+exec,df
+exec,d
+exec,d
+exec,r
+
+exec,fd  #03
+exec,u
+exec,u
+exec,df
+exec,d
+exec,d
+exec,r
+
+exec,fd  #04
+exec,u
+exec,u
+exec,df
+exec,d
+exec,d
+exec,r
+
+exec,fd  #05
+exec,u
+exec,u
+exec,df
+exec,d
+exec,d
+exec,r
+
+exec,fd  #06
+exec,u
+exec,u
+exec,df
+exec,d
+exec,d
+exec,r
+
+exec,fd  #07
+exec,u
+exec,u
+exec,df
+exec,d
+exec,d
+exec,r
+
+exec,fd  #08
+exec,u
+exec,u
+exec,df
+exec,d
+exec,d
+exec,r
+
+exec,fd  #09
+exec,u
+exec,u
+exec,df
+exec,d
+exec,d
+exec,r
+
+exec,fd  #10
+exec,u
+exec,u
+exec,df
+exec,d
+exec,d
+exec,r
+
+exec,fd  #11
+exec,u
+exec,u
+exec,df
+exec,d
+exec,d
+exec,r
+
+exec,fd  #12
+exec,u
+exec,u
+exec,df
+exec,d
+exec,d
+exec,r
+
+exec,fd  #13
+exec,u
+exec,u
+exec,df
+exec,d
+exec,d
+exec,r
+
+exec,fd  #14
+exec,u
+exec,u
+exec,df
+exec,d
+exec,d
+exec,r
+
+exec,fd  #15
+exec,u
+exec,u
+exec,df  #  There! Done with copying all of row 2 up to row 4
+
+##########  Copy all of row 1 into row 2 and clear row 1
+
+exec,h
+exec,u
+
+exec,fd  #00
+exec,d0
+exec,u
+exec,df
+exec,d
+exec,r
+
+exec,fd  #01
+exec,d0
+exec,u
+exec,df
+exec,d
+exec,r
+
+exec,fd  #02
+exec,d0
+exec,u
+exec,df
+exec,d
+exec,r
+
+exec,fd  #03
+exec,d0
+exec,u
+exec,df
+exec,d
+exec,r
+
+exec,fd  #04
+exec,d0
+exec,u
+exec,df
+exec,d
+exec,r
+
+exec,fd  #05
+exec,d0
+exec,u
+exec,df
+exec,d
+exec,r
+
+exec,fd  #06
+exec,d0
+exec,u
+exec,df
+exec,d
+exec,r
+
+exec,fd  #07
+exec,d0
+exec,u
+exec,df
+exec,d
+exec,r
+
+exec,fd  #08
+exec,d0
+exec,u
+exec,df
+exec,d
+exec,r
+
+exec,fd  #09
+exec,d0
+exec,u
+exec,df
+exec,d
+exec,r
+
+exec,fd  #10
+exec,d0
+exec,u
+exec,df
+exec,d
+exec,r
+
+exec,fd  #11
+exec,d0
+exec,u
+exec,df
+exec,d
+exec,r
+
+exec,fd  #12
+exec,d0
+exec,u
+exec,df
+exec,d
+exec,r
+
+exec,fd  #13
+exec,d0
+exec,u
+exec,df
+exec,d
+exec,r
+
+exec,fd  #14
+exec,d0
+exec,u
+exec,df
+exec,d
+exec,r
+
+exec,fd  #15
+exec,d0
+exec,u
+exec,df
+
+
+
+
+##########  Now somehow go back and do subtraction...
+####
+##            ...and do some more stuff here...
+####
+##########  Then put stuff back!
+
+
+
+
+exec,f0
+
+ret,11   #  JUMP BACK to true SUBTRACTION
+
+tag,12   #  RESTORE REGISTERS.
+
+##########  Move Row 4 back to row 2:
+
+exec,h
+exec,u
+exec,u
+exec,u
+exec,u
+
+
+exec,fd  #00
+exec,d
+exec,d
+exec,df
+exec,r
+exec,u
+exec,u
+
+exec,fd  #01
+exec,d
+exec,d
+exec,df
+exec,r
+exec,u
+exec,u
+
+exec,fd  #02
+exec,d
+exec,d
+exec,df
+exec,r
+exec,u
+exec,u
+
+exec,fd  #03
+exec,d
+exec,d
+exec,df
+exec,r
+exec,u
+exec,u
+
+exec,fd  #04
+exec,d
+exec,d
+exec,df
+exec,r
+exec,u
+exec,u
+
+exec,fd  #05
+exec,d
+exec,d
+exec,df
+exec,r
+exec,u
+exec,u
+
+exec,fd  #06
+exec,d
+exec,d
+exec,df
+exec,r
+exec,u
+exec,u
+
+exec,fd  #07
+exec,d
+exec,d
+exec,df
+exec,r
+exec,u
+exec,u
+
+exec,fd  #08
+exec,d
+exec,d
+exec,df
+exec,r
+exec,u
+exec,u
+
+exec,fd  #09
+exec,d
+exec,d
+exec,df
+exec,r
+exec,u
+exec,u
+
+exec,fd  #10
+exec,d
+exec,d
+exec,df
+exec,r
+exec,u
+exec,u
+
+exec,fd  #11
+exec,d
+exec,d
+exec,df
+exec,r
+exec,u
+exec,u
+
+exec,fd  #12
+exec,d
+exec,d
+exec,df
+exec,r
+exec,u
+exec,u
+
+exec,fd  #13
+exec,d
+exec,d
+exec,df
+exec,r
+exec,u
+exec,u
+
+exec,fd  #14
+exec,d
+exec,d
+exec,df
+exec,r
+exec,u
+exec,u
+
+exec,fd  #15
+exec,d
+exec,d
+exec,df
+
+##########  Toggle the sign flag of the ACCUMULATOR (bit 12, row 0):  >>> WHAT??
+
+exec,h
+
+exec,r   #01
+exec,r   #02
+exec,r   #03
+exec,r   #04
+exec,r   #05
+exec,r   #06
+exec,r   #07
+exec,r   #08
+exec,r   #09
+exec,r   #10
+exec,r   #11
+exec,r   #12
+
+exec,dc
+
+
+
+
+##########  Probably need to clean things up a bit...
+####
+##            ...and do some more stuff...
+####
+##########  ...and then we're all done (FINALLY)!
+
+
+
+
+##########  FINAL CLEAN-UP
+
+tag,13
+
+##  CLEAR that annoying bit at the beginning of row 3:
+
+exec,h
+exec,u
+exec,u
+exec,u
+exec,d0
+exec,h
+
+##  Also CLEAR the FLAG because it is annoying
+
+exec,f0
+
+##################################################################
+##  All done with 4 digit decimal SIGNED integer subtraction!   ##
+##################################################################
+
+
+
+##################################################################
+##################################################################
+##################################################################
+##################################################################
+
+
+adv,8
+
+##********************************************
+
+tag,9
+exec,h
+exec,f0
+ifd0,f1  #0 (compliment = "1")
+exec,r
+ifd1,f1  #1 (compliment = "0")
+exec,r
+ifd0,f1  #0 (compliment = "1")
+iff0,sk
+adv,9
+
+## Put routine "101" (#5) here.
+
+##################################################
+##################################################
+#######                                    #######
+#######  Toggle Sign of Accumulator (+/-)  #######
+#######                                    #######
+##################################################
+##################################################
+
+
+###########  First check for GARBAGE
+
+
+###########  GARBAGE PATROL  ############
+
+exec,h
+exec,f0
+
+exec,r    #01
+exec,r    #02
+exec,r    #03
+exec,r    #04
+exec,r    #05
+exec,r    #06
+exec,r    #07
+exec,fd   #  Load "FLAG" with whatever is there.
+exec,r    #08
+ifd1,f1   #  and if bit 8 is SET then make sure the "FLAG" is SET.
+
+iff0,sk
+adv,8
+
+###########  DONE WITH GARBAGE PATROL
+
+
+###########  Now it's okay to do your business
+
+
+exec,h
+
+exec,r   # 01
+exec,r   # 02
+exec,r   # 03
+exec,r   # 04
+exec,r   # 05
+exec,r   # 06
+exec,r   # 07
+exec,r   # 08
+exec,r   # 09
+exec,r   # 10
+exec,r   # 11
+exec,r   # 12
+
+exec,dc
+
+exec,h
+
+adv,8
+
+##********************************************
+
+tag,9
+exec,h
+exec,f0
+ifd0,f1  #0 (compliment = "1")
+exec,r
+ifd0,f1  #0 (compliment = "1")
+exec,r
+ifd1,f1  #1 (compliment = "0")
+iff0,sk
+adv,9
+
+## Put routine "110" (#6) here.
+
+######################################
+######################################
+#######                        #######
+#######  Cycle Through Digits  #######
+#######                        #######
+######################################
+######################################
+
+
+###########  First check for GARBAGE
+
+
+###########  GARBAGE PATROL  ############
+
+exec,h
+exec,f0
+
+exec,r    #01
+exec,r    #02
+exec,r    #03
+exec,r    #04
+exec,r    #05
+exec,r    #06
+exec,r    #07
+exec,fd   #  Load "FLAG" with whatever is there.
+exec,r    #08
+ifd1,f1   #  and if bit 8 is SET then make sure the "FLAG" is SET.
+
+iff0,sk
+adv,8
+
+###########  DONE WITH GARBAGE PATROL
+
+
+###########  Now it's okay to do your business
+
+exec,h
+
+exec,r   # 01
+exec,r   # 02
+exec,r   # 03
+exec,r   # 04
+exec,r   # 05
+exec,r   # 06
+exec,r   # 07
+exec,r   # 08
+exec,r   # 09
+exec,r   # 10
+exec,r   # 11
+exec,r   # 12
+exec,r   # 13
+exec,r   # 14
+
+ifd0,sk  # skip next if upper bit of counter is "0"
+adv,2    # otherwise ADVANCE to tag,2
+exec,r
+ifd0,sk  # skip next if lower bit of counter is "0"
+adv,3    # otherwise ADVANCE to tag,3
+
+##############  AT THIS POINT counter == 0
+
+exec,h
+
+exec,u   # row #1
+exec,u   # row #2
+
+adv,1
+
+tag,3   ######  AT THIS POINT counter == 1
+
+exec,h
+
+exec,u   # row #1
+exec,u   # row #2
+
+exec,r   # 01
+exec,r   # 02
+exec,r   # 03
+exec,r   # 04
+
+adv,1
+
+tag,2   ######  check lower bit of counter
+
+exec,r
+ifd0,sk  # skip next if lower bit of counter is "0"
+adv,3    # otherwise ADVANCE to tag,3
+
+##############  AT THIS POINT counter == 2
+
+exec,h
+
+exec,u   # row #1
+exec,u   # row #2
+
+exec,r   # 01
+exec,r   # 02
+exec,r   # 03
+exec,r   # 04
+exec,r   # 05
+exec,r   # 06
+exec,r   # 07
+exec,r   # 08
+
+adv,1
+
+tag,3   ######  AT THIS POINT counter == 3
+
+exec,h
+
+exec,u   # row #1
+exec,u   # row #2
+
+exec,r   # 01
+exec,r   # 02
+exec,r   # 03
+exec,r   # 04
+exec,r   # 05
+exec,r   # 06
+exec,r   # 07
+exec,r   # 08
+exec,r   # 09
+exec,r   # 10
+exec,r   # 11
+exec,r   # 12
+
+tag,1
+
+exec,r
+exec,r
+exec,r
+
+exec,dc
+ifd0,sk
+adv,2
+exec,l
+
+exec,dc
+ifd0,sk
+adv,3
+exec,l
+
+exec,dc
+ifd0,sk
+adv,4
+exec,l
+
+exec,dc
+adv,5
+
+tag,2
+exec,l
+tag,3
+exec,l
+tag,4
+exec,l
+
+tag,5
+
+ifd1,sk
+adv,6
+
+exec,f0
+exec,r
+ifd1,f1
+exec,r
+ifd1,f1
+
+iff1,sk
+adv,6
+
+exec,r
+exec,d0
+exec,l
+exec,d0
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+tag,6
+adv,8
+
+tag,9
+##********************************************
+##  By default, this is routine "111" (#7)  **
+##********************************************
+
+
+#####################################
+##                                 ##
+##  >>>>>>>>  CLEAR ALL  <<<<<<<<  ##
+##                                 ##
+#####################################
+
+
+###########  No need to check for GARBAGE because
+###########  this will CLEAR everything anyway!
+
+
+#########  Clear row 1:
+
+exec,h
+exec,u
+
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+#########  Clear row 2:
+
+exec,h
+exec,u
+exec,u
+
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+#########  Finally, clear row 0 from bit 3 through bit 15
+
+exec,h
+exec,r
+exec,r
+exec,r
+
+exec,d0
+
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,h
+
+
+
+adv,8    #  Don't really NEED this...
+         #
+         #  We could merely let it fall through...
+         #
+         #  ...just putting it here
+         #   for the sake of completeness.
+
+
+###################################################
+###################################################
+###################################################
+###################################################
+###################################################
+
+
+
+tag,8
+
+
+#########################################################################
+#########################################################################
+##                                                                     ##
+##  *****************************************************************  ##
+##  *****************************************************************  ##
+##  **                                                             **  ##
+##  **        >>>>>>>>>>>>  FINAL CLEAN-UP <<<<<<<<<<<<<<          **  ##
+##  **                                                             **  ##
+##  *****************************************************************  ##
+##  *****************************************************************  ##
+##                                                                     ##
+#########################################################################
+#########################################################################
+
+#  Before we get to the GRAND FINALE, I've decided to be picky and do
+#  some cleaning up before moving on.
+#
+#  The main thing I'm trying to avoid at this point is the possibility
+#  of a "NEGATIVE ZERO" in the ACCUMULATOR which doesn't seem to matter
+#  much except I just don't like it.
+#
+#  So let's check the SIGN of the ACCUMULATOR and if it is NEGATIVE
+#  we'll check the ACCUMULATOR itself and if it is ZERO then we'll
+#  reset the SIGN to NON-NEGATIVE.
+#
+#  Okay?
+#
+#  Let's do it.
+
+#########  Find SIGN bit of ACCUMULATOR (bit 12 row 0)
+
+exec,h
+
+exec,r   #01
+exec,r   #02
+exec,r   #03
+exec,r   #04
+exec,r   #05
+exec,r   #06
+exec,r   #07
+exec,r   #08
+exec,r   #09
+exec,r   #10
+exec,r   #11
+exec,r   #12
+
+ifd1,sk  #  test SIGN bit
+adv,8    #  If SIGN bit is "0" (NON-NEGATIVE) then
+         #    advance to next section.
+         #  Otherwise do this:
+
+#########  Find the highest-order bit of the ACCUMULATOR (bit 0 row 1)
+
+exec,h
+exec,u
+
+#########  Test each bit in the row, If any "1's" show up then the
+#########    ACCUMULATOR is not zero.
+
+exec,f0
+
+ifd1,f1  #  test bit 00
+exec,r
+ifd1,f1  #  test bit 01
+exec,r
+ifd1,f1  #  test bit 02
+exec,r
+ifd1,f1  #  test bit 03
+exec,r
+ifd1,f1  #  test bit 04
+exec,r
+ifd1,f1  #  test bit 05
+exec,r
+ifd1,f1  #  test bit 06
+exec,r
+ifd1,f1  #  test bit 07
+exec,r
+ifd1,f1  #  test bit 08
+exec,r
+ifd1,f1  #  test bit 09
+exec,r
+ifd1,f1  #  test bit 10
+exec,r
+ifd1,f1  #  test bit 11
+exec,r
+ifd1,f1  #  test bit 12
+exec,r
+ifd1,f1  #  test bit 13
+exec,r
+ifd1,f1  #  test bit 14
+exec,r
+ifd1,f1  #  test bit 15
+
+iff0,sk  #  test FLAG. If it is "0" then the ACCUMULATOR is zero.
+adv,8    #  If ACCUMULATOR is NOT zero, move on to next section.
+         #  Otherwise do this (reset SIGN bit of ACCUMULATOR to "0"):
+
+#########  Find SIGN bit of ACCUMULATOR (bit 12 row 0)
+
+exec,h
+
+exec,r   #01
+exec,r   #02
+exec,r   #03
+exec,r   #04
+exec,r   #05
+exec,r   #06
+exec,r   #07
+exec,r   #08
+exec,r   #09
+exec,r   #10
+exec,r   #11
+exec,r   #12
+
+exec,d0  ##  Reset SIGN bit to "0"
+
+#  There! Now move on.
+
+tag,8
+
+#########################################################################
+#########################################################################
+##                                                                     ##
+##  *****************************************************************  ##
+##  *****************************************************************  ##
+##  **                                                             **  ##
+##  **  Now we are done with whatever math and stuff we were       **  ##
+##  **   trying to do.                                             **  ##
+##  **                                                             **  ##
+##  **  It's time to display the results!                          **  ##
+##  **                                                             **  ##
+##  *****************************************************************  ##
+##  *****************************************************************  ##
+##                                                                     ##
+#########################################################################
+#########################################################################
+
+exec,f0   # Let's just clear the FLAG for now
+
+#########################################################################
+#########################################################################
+
+
+####################################
+##  set "marker" at end of row 3  ##
+####################################
+
+exec,h  #  HOME
+exec,u  #  UP to row 3 so we can set "marker" at row's end
+exec,u  #
+exec,u  #  We're now in row 3
+exec,r  #  move right toward row's end
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r  #  We're now at end of row 3
+
+exec,d1 #  set "marker"
+
+##############################
+##  Copy row 2 into row 14  ##
+##     and clear row 15     ##
+##############################
+
+exec,h  #  HOME
+exec,u  #1  UP toward row #2
+exec,u  #2  We're now in row #2
+
+        ############
+        ##  loop  ##
+        ############
+
+tag,14  #  beginning of "move" loop
+
+exec,fd #  load FLAG with bit from row 2
+
+exec,u  #3  UP towards row #14  -- This is row #3
+exec,u  #4
+exec,u  #5
+exec,u  #6
+exec,u  #7
+exec,u  #8
+exec,u  #9
+exec,u  #10
+exec,u  #11
+exec,u  #12
+exec,u  #13
+exec,u  #14 -- We're now in row #14
+
+exec,df #  load bit in row 14 with FLAG bit
+exec,u  #  UP to row 15
+exec,d0 #  clear the bit in row 15
+
+exec,d  #14  down towards row #3 -- this is row #14
+exec,d  #13
+exec,d  #12
+exec,d  #11
+exec,d  #10
+exec,d  #9
+exec,d  #8
+exec,d  #7
+exec,d  #6
+exec,d  #5
+exec,d  #4
+exec,d  #3  We're now in row 3
+
+ifd0,sk #  Is there a "marker" here?
+adv,14  #  If so, ADVANCE out of loop
+exec,d  #  If not, move down to row 2
+exec,r  #  advance to next column
+ret,14  #  RETREAT to repeat loop
+
+tag,14  #  EXIT point of this loop
+
+#############################
+##  Copy row 1 into row 8  ##
+##     and clear row 9     ##
+#############################
+
+exec,h  #  HOME
+exec,u  #  UP to row 1
+
+        ############
+        ##  loop  ##
+        ############
+
+tag,14  #  beginning of "move" loop
+
+exec,fd #  load FLAG with bit from row 1
+
+exec,u  #2  UP towards row #8  -- This is row #2
+exec,u  #3
+exec,u  #4
+exec,u  #5
+exec,u  #6
+exec,u  #7
+exec,u  #8  We're now in row #8
+
+exec,df #  load bit in row #8 with FLAG bit
+exec,u  #  UP to row #9
+exec,d0 #  clear the bit in row #9
+
+exec,d  #8  down towards row #3  -- This is row #8
+exec,d  #7
+exec,d  #6
+exec,d  #5
+exec,d  #4
+exec,d  #3  We're now in row #3
+
+ifd0,sk #  Is there a "marker" here?
+adv,14  #  If so, ADVANCE out of loop
+exec,d  #2  If not, move down towards row #1
+exec,d  #1  This is row #1
+exec,r  #  advance to next column
+ret,14  #  repeat loop
+
+tag,14
+
+################################################
+##  Put a "cursor" at top left of data field  ##
+################################################
+
+exec,h  #  HOME
+exec,u  #  UP toward row 15
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u
+exec,u  # we're in row 15
+
+exec,d1 # set "cursor"
+
+
+#########################
+##  SEARCH FOR CURSOR  ## (This is the start of a BIG loop!)
+#########################
+
+
+tag,15   # SEARCH FOR CURSOR
+
+
+###      #  Search for cursor in row #15
+
+exec,h   #  HOME
+
+exec,u   #1  Move up toward row 15
+exec,u   #2
+exec,u   #3
+exec,u   #4
+exec,u   #5
+exec,u   #6
+exec,u   #7
+exec,u   #8
+exec,u   #9
+exec,u   #10
+exec,u   #11
+exec,u   #12
+exec,u   #13
+exec,u   #14
+exec,u   #15  -- This is row #15
+
+ifd0,sk
+adv,14
+
+exec,r
+exec,r
+exec,r
+exec,r
+ifd0,sk
+adv,14
+
+exec,r
+exec,r
+exec,r
+exec,r
+ifd0,sk
+adv,14
+
+exec,r
+exec,r
+exec,r
+exec,r
+ifd0,sk
+adv,14
+
+###      #  Search for cursor in row #9
+
+exec,h   #  HOME
+
+exec,u   #1  Move up toward row 9
+exec,u   #2
+exec,u   #3
+exec,u   #4
+exec,u   #5
+exec,u   #6
+exec,u   #7
+exec,u   #8
+exec,u   #9  --  This is row #9
+
+ifd0,sk
+adv,14
+
+exec,r
+exec,r
+exec,r
+exec,r
+ifd0,sk
+adv,14
+
+exec,r
+exec,r
+exec,r
+exec,r
+ifd0,sk
+adv,14
+
+exec,r
+exec,r
+exec,r
+exec,r
+
+#ifd0,sk  #  Since this is the last possible CURSOR position
+          #  I'm not even going to check to see if the
+          #  CURSOR is here
+
+#adv,14   # No need to advance to tag - merely fall through
+
+##  Done with SEARCH FOR CURSOR
+
+
+##############################
+##  DRAW CHARACTER routine  ##
+##############################
+
+tag,14
+
+exec,d   #  DOWN to character code
+
+         #######################
+         ##  Decode the code  ##
+         #######################
+
+ifd0,sk  #0
+adv,10
+exec,r
+ifd0,sk  #0
+adv,11
+exec,r
+ifd0,sk  #0
+adv,12
+exec,r
+ifd0,sk  #0
+adv,13
+
+
+#######################################################
+         #  0000  DRAW "0"
+
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+adv,9   #  DONE with "0"
+
+#######################################################
+tag,13   # 0001  DRAW "1"
+
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d1
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d1
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+adv,9   #  DONE with "1"
+
+#######################################################
+tag,12   # 001x
+
+exec,r
+ifd0,sk  #0
+adv,13
+
+#######################################################
+##       #  0010 -- DRAW "2"
+
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "2"
+
+#######################################################
+tag,13   #  0011 -- DRAW "3"
+
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "3"
+
+#######################################################
+tag,11   # 01xx
+
+exec,r
+ifd0,sk  #0
+adv,12
+exec,r
+ifd0,sk  #0
+adv,13
+
+#######################################################
+         #  0100 -- DRAW "4"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d  
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+adv,9   #  DONE with "4"
+
+#######################################################
+tag,13   #  0101 -- DRAW "5"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "5"
+
+#######################################################
+tag,12   # 011x
+
+exec,r
+ifd0,sk  #0
+adv,13
+
+#######################################################
+##       #  0110 -- DRAW "6"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+adv,9   #  DONE with "6"
+
+#######################################################
+tag,13   #  0111 -- DRAW "7"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "7"
+
+#######################################################
+
+tag,10  #1xxx - Search
+
+exec,r
+ifd0,sk  #0
+adv,11
+exec,r
+ifd0,sk  #0
+adv,12
+exec,r
+ifd0,sk  #0
+adv,13
+
+
+#######################################################
+         #  1000 -- DRAW "8"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "8"
+
+#######################################################
+tag,13   # 1001 -- DRAW "9'
+
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d1 #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "9"
+
+#######################################################
+tag,12   # 101x
+
+exec,r
+ifd0,sk  #0
+adv,13
+
+#######################################################
+##       #  1010 -- DRAW "<sp>"
+
+exec,d0  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+adv,9   #  DONE with "<sp>"
+
+#######################################################
+tag,13   #  1011 -- DRAW "H"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "H"
+
+#######################################################
+tag,11   # 11xx
+
+exec,r
+ifd0,sk  #0
+adv,12
+exec,r
+ifd0,sk  #0
+adv,13
+
+#######################################################
+         #  1100 -- DRAW "J"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d  
+exec,d1  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+adv,9   #  DONE with "J"
+
+#######################################################
+tag,13   #  1101 -- DRAW "N"
+
+exec,d1  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d1
+exec,r
+exec,d1
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d1
+exec,r
+exec,d1
+exec,r
+exec,d1
+
+exec,d
+exec,d1  #    (right to left)
+exec,l
+exec,d0
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+adv,9   #  DONE with "N"
+
+#######################################################
+tag,12   # 111x
+
+exec,r
+ifd0,sk  #0
+adv,13
+
+#######################################################
+##       #  1110 -- DRAW "?"
+
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d1
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d1
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+adv,9   #  DONE with "?"
+
+#######################################################
+tag,13   #  1111 -- DRAW "!"
+
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d1
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+exec,d
+exec,d0  #    (left to right)
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+exec,d
+exec,d0  #    (right to left)
+exec,l
+exec,d1
+exec,l
+exec,d0
+exec,l
+exec,d0
+
+          #  DONE with "!"
+
+#adv,9  #  Merely let this fall through
+
+#######################################################
+
+######################
+##  ADVANCE CURSOR  ##
+######################
+
+tag,9  #  ADVANCE CURSOR routine
+
+###      #  Search for cursor in row #15
+
+exec,h   #  HOME
+
+exec,u   #1  Move up 15 positions -- this is #1
+exec,u   #2
+exec,u   #3
+
+exec,u   #4
+exec,u   #5
+exec,u   #6
+
+exec,u   #7
+exec,u   #8
+exec,u   #9
+
+exec,u   #10
+exec,u   #11
+exec,u   #12
+
+exec,u   #13
+exec,u   #14
+exec,u   #15  -- This is row #15
+
+ifd1,sk
+adv,8
+
+  exec,d0
+  exec,r
+  exec,r
+  exec,r
+  exec,r
+  exec,d1
+  ret,15
+
+tag,8
+exec,r
+exec,r
+exec,r
+exec,r
+ifd1,sk
+adv,8
+
+  exec,d0
+  exec,r
+  exec,r
+  exec,r
+  exec,r
+  exec,d1
+  ret,15
+
+tag,8
+exec,r
+exec,r
+exec,r
+exec,r
+ifd1,sk
+adv,8
+
+  exec,d0
+  exec,r
+  exec,r
+  exec,r
+  exec,r
+  exec,d1
+  ret,15
+
+tag,8
+exec,r
+exec,r
+exec,r
+exec,r
+ifd1,sk
+adv,8
+
+
+  exec,d0
+############  SWITCH ROWS! GO DOWN TO BOTTOM ROW!  #########
+
+  exec,h   #  HOME
+  exec,u   #  Move up towards row #9 -- this is #1
+  exec,u   #2
+  exec,u   #3
+  exec,u   #4
+  exec,u   #5
+  exec,u   #6
+  exec,u   #7
+  exec,u   #8
+  exec,u   #9  --  This is row #9
+  exec,d1
+  ret,15
+
+
+
+tag,8
+############  SWITCH ROWS! GO DOWN TO BOTTOM ROW!  #########
+
+exec,h   #  HOME
+exec,u   #  Move up towards row #9 -- this is #1
+  exec,u   #2
+  exec,u   #3
+  exec,u   #4
+  exec,u   #5
+  exec,u   #6
+  exec,u   #7
+  exec,u   #8
+  exec,u   #9  --  This is row #9
+ifd1,sk
+adv,8
+
+  exec,d0
+  exec,r
+  exec,r
+  exec,r
+  exec,r
+  exec,d1
+  ret,15
+
+tag,8
+exec,r
+exec,r
+exec,r
+exec,r
+ifd1,sk
+adv,8
+
+  exec,d0
+  exec,r
+  exec,r
+  exec,r
+  exec,r
+  exec,d1
+  ret,15
+
+tag,8
+exec,r
+exec,r
+exec,r
+exec,r
+ifd1,sk
+adv,8
+
+  exec,d0
+  exec,r
+  exec,r
+  exec,r
+  exec,r
+  exec,d1
+  ret,15
+
+tag,8
+exec,r
+exec,r
+exec,r
+exec,r
+
+  exec,d0  #  Clear ALL cursors
+
+#########################################
+
+##  While we're at it, let's remove that pointer thing in row #3
+##   then move pointer HOME
+
+exec,h
+
+exec,u
+exec,u
+exec,u
+
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+
+exec,d0
+
+##########################
+##                      ##
+##  That's that.        ##
+##                      ##
+##  Now show which      ##
+##  registers are       ##
+##  negative.           ##
+##                      ##
+##########################
+
+##########  Find sign of ACCUMULATOR
+
+exec,h
+
+exec,r   # 01
+exec,r   # 02
+exec,r   # 03
+exec,r   # 04
+exec,r   # 05
+exec,r   # 06
+exec,r   # 07
+exec,r   # 08
+exec,r   # 09
+exec,r   # 10
+exec,r   # 11
+exec,r   # 12
+
+exec,fd
+
+##########  SHOW SIGN of ACCUMULATOR
+
+exec,h
+
+exec,u   # row #1
+exec,u   # row #2
+exec,u   # row #3
+exec,u   # row #4
+exec,u   # row #5
+exec,u   # row #6
+exec,u   # row #7
+exec,u   # row #8
+
+exec,df
+
+##########  Find sign of UPPER REGISTER
+
+exec,h
+
+exec,r   # 01
+exec,r   # 02
+exec,r   # 03
+exec,r   # 04
+exec,r   # 05
+exec,r   # 06
+exec,r   # 07
+exec,r   # 08
+exec,r   # 09
+exec,r   # 10
+exec,r   # 11
+
+exec,fd
+
+
+##########  SHOW SIGN of UPPER REGISTER
+
+exec,h
+
+exec,u   # row #1
+exec,u   # row #2
+exec,u   # row #3
+exec,u   # row #4
+exec,u   # row #5
+exec,u   # row #6
+exec,u   # row #7
+exec,u   # row #8
+exec,u   # row #9
+exec,u   # row #10
+exec,u   # row #11
+exec,u   # row #12
+exec,u   # row #13
+exec,u   # row #14
+
+exec,df
+
+###################################
+##                               ##
+##  DISPLAY CURSOR IF INDICATED  ##
+##                               ##
+###################################
+
+##########  Find SWITCH for CURSOR
+
+exec,h
+
+exec,r   # 01
+exec,r   # 02
+exec,r   # 03
+exec,r   # 04
+exec,r   # 05
+exec,r   # 06
+exec,r   # 07
+exec,r   # 08
+exec,r   # 09
+exec,r   # 10
+exec,r   # 11
+exec,r   # 12
+exec,r   # 13
+exec,r   # 14
+
+ifd0,sk  # skip next if upper bit of counter is "0"
+adv,2    # otherwise ADVANCE to tag,2
+exec,r
+ifd0,sk  # skip next if lower bit of counter is "0"
+adv,3    # otherwise ADVANCE to tag,3
+
+##############  AT THIS POINT counter == 0
+
+exec,h
+
+exec,u   # row #1
+exec,u   # row #2
+exec,u   # row #3
+exec,u   # row #4
+exec,u   # row #5
+exec,u   # row #6
+exec,u   # row #7
+exec,u   # row #8
+exec,u   # row #9
+exec,u   # row #10
+exec,u   # row #11
+exec,u   # row #12
+exec,u   # row #13
+exec,u   # row #14
+exec,u   # row #15
+
+exec,d1
+
+adv,1
+
+tag,3   ######  AT THIS POINT counter == 1
+
+exec,h
+
+exec,u   # row #1
+exec,u   # row #2
+exec,u   # row #3
+exec,u   # row #4
+exec,u   # row #5
+exec,u   # row #6
+exec,u   # row #7
+exec,u   # row #8
+exec,u   # row #9
+exec,u   # row #10
+exec,u   # row #11
+exec,u   # row #12
+exec,u   # row #13
+exec,u   # row #14
+exec,u   # row #15
+
+exec,r   # 01
+exec,r   # 02
+exec,r   # 03
+exec,r   # 04
+
+exec,d1
+
+adv,1
+
+
+tag,2   ######  check lower bit of counter
+
+exec,r
+ifd0,sk  # skip next if lower bit of counter is "0"
+adv,3    # otherwise ADVANCE to tag,3
+
+##############  AT THIS POINT counter == 2
+
+exec,h
+
+exec,u   # row #1
+exec,u   # row #2
+exec,u   # row #3
+exec,u   # row #4
+exec,u   # row #5
+exec,u   # row #6
+exec,u   # row #7
+exec,u   # row #8
+exec,u   # row #9
+exec,u   # row #10
+exec,u   # row #11
+exec,u   # row #12
+exec,u   # row #13
+exec,u   # row #14
+exec,u   # row #15
+
+exec,r   # 01
+exec,r   # 02
+exec,r   # 03
+exec,r   # 04
+exec,r   # 05
+exec,r   # 06
+exec,r   # 07
+exec,r   # 08
+
+exec,d1
+
+adv,1
+
+
+tag,3   ######  AT THIS POINT counter == 3
+
+exec,h
+
+exec,u   # row #1
+exec,u   # row #2
+exec,u   # row #3
+exec,u   # row #4
+exec,u   # row #5
+exec,u   # row #6
+exec,u   # row #7
+exec,u   # row #8
+exec,u   # row #9
+exec,u   # row #10
+exec,u   # row #11
+exec,u   # row #12
+exec,u   # row #13
+exec,u   # row #14
+exec,u   # row #15
+
+exec,r   # 01
+exec,r   # 02
+exec,r   # 03
+exec,r   # 04
+exec,r   # 05
+exec,r   # 06
+exec,r   # 07
+exec,r   # 08
+exec,r   # 09
+exec,r   # 10
+exec,r   # 11
+exec,r   # 12
+
+exec,d1
+
+tag,1
+
+###################################
+##                               ##
+##  I guess we're done.          ##
+##                               ##
+###################################
+
+exec,f0
+exec,h

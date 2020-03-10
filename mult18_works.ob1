@@ -1,0 +1,1148 @@
+################## MULTIPLICATION ###################
+
+######## Step one - move bottom four rows up one row
+########  and clear bottom row  #####################
+
+exec,h  #### Get oriented
+
+exec,u  #### transfer column 00
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0
+
+exec,r
+
+exec,u  #### transfer column 01
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0
+
+exec,r
+
+exec,u  #### transfer column 02
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0
+
+exec,r
+
+exec,u  #### transfer column 03
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0
+
+exec,r
+
+exec,u  #### transfer column 04
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0
+
+exec,r
+
+exec,u  #### transfer column 05
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0
+
+exec,r
+
+exec,u  #### transfer column 06
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0
+
+exec,r
+
+exec,u  #### transfer column 07
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0
+
+exec,r
+
+exec,u  #### transfer column 08
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0
+
+exec,r
+
+exec,u  #### transfer column 09
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0
+
+exec,r
+
+exec,u  #### transfer column 10
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0
+
+exec,r
+
+exec,u  #### transfer column 11
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0
+
+exec,r
+
+exec,u  #### transfer column 12
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0
+
+exec,r
+
+exec,u  #### transfer column 13
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0
+
+exec,r
+
+exec,u  #### transfer column 14
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0
+
+exec,r
+
+exec,u  #### transfer column 15
+exec,u
+exec,u
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d
+exec,fd
+exec,u
+exec,df
+exec,d
+exec,d0  #### data pointer now at bottom right corner
+
+################## Step One completed! ##############
+
+
+######## Step Two - deliminate maximum number length with markers
+########  Set maximum number length to 15 bits
+########   because more than that is problematic
+
+exec,h
+
+exec,u
+exec,u
+exec,u
+exec,r
+exec,d1  #### marker placed at (1,3)
+
+
+
+################## Step Two completed! ##############
+
+######## Step Three - set row 4
+
+
+exec,h  #### data pointer now at bottom left corner
+
+############ First, CLEAR row 4:
+
+exec,u
+exec,u
+exec,u
+exec,u
+
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0  #### data pointer now at (15,4)
+
+exec,d   #### data pointer now at (15,3)
+
+exec,fd
+exec,u
+exec,d1  #### 15,4
+iff0,sk
+adv,1
+
+exec,l
+exec,d
+exec,fd
+exec,u
+exec,d1  #### 14,4
+iff0,sk
+adv,1
+
+exec,l
+exec,d
+exec,fd
+exec,u
+exec,d1  #### 13,4
+iff0,sk
+adv,1
+
+exec,l
+exec,d
+exec,fd
+exec,u
+exec,d1  #### 12,4
+iff0,sk
+adv,1
+
+exec,l
+exec,d
+exec,fd
+exec,u
+exec,d1  #### 11,4
+iff0,sk
+adv,1
+
+exec,l
+exec,d
+exec,fd
+exec,u
+exec,d1  #### 10,4
+iff0,sk
+adv,1
+
+exec,l
+exec,d
+exec,fd
+exec,u
+exec,d1  #### 09,4
+iff0,sk
+adv,1
+
+exec,l
+exec,d
+exec,fd
+exec,u
+exec,d1  #### 08,4
+iff0,sk
+adv,1
+
+exec,l
+exec,d
+exec,fd
+exec,u
+exec,d1  #### 07,4
+iff0,sk
+adv,1
+
+exec,l
+exec,d
+exec,fd
+exec,u
+exec,d1  #### 06,4
+iff0,sk
+adv,1
+
+exec,l
+exec,d
+exec,fd
+exec,u
+exec,d1  #### 05,4
+iff0,sk
+adv,1
+
+exec,l
+exec,d
+exec,fd
+exec,u
+exec,d1  #### 04,4
+iff0,sk
+adv,1
+
+exec,l
+exec,d
+exec,fd
+exec,u
+exec,d1  #### 03,4
+iff0,sk
+adv,1
+
+exec,l
+exec,d
+exec,fd
+exec,u
+exec,d1  #### 02,4
+iff0,sk
+adv,1
+
+exec,l
+exec,d
+exec,fd
+exec,u
+exec,d1  #### 01,4
+iff0,sk
+adv,1
+
+exec,l
+exec,d
+exec,fd
+exec,u
+exec,d1  #### 00,4
+
+tag,1
+
+############ Okay. Step 4 completed!
+############  Now here's what we're going to do:
+
+
+        #####################################
+tag,4   ####  START OF A VERY BIG LOOP!  ####
+        #####################################
+
+
+######## Step 5 is to check to see if the rightmost
+########  bit in row 4 is zero. If it is we're done!
+
+exec,h
+exec,u
+exec,u
+exec,u
+exec,u  #### Now pointer is at (4,0)
+
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r  #### Now pointer is at (4,15)
+
+ifd1,sk
+adv,5  #### "tag,5" means we are pretty much done!
+       #### All that needs to be done is clean up.
+
+
+############ Step 6 is to shift the bottom row
+############  one space to the left!
+
+exec,h
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,f0
+
+exec,ex
+exec,l
+exec,ex
+exec,l
+exec,ex
+exec,l
+exec,ex
+exec,l
+exec,ex
+exec,l
+exec,ex
+exec,l
+exec,ex
+exec,l
+exec,ex
+exec,l
+exec,ex
+exec,l
+exec,ex
+exec,l
+exec,ex
+exec,l
+exec,ex
+exec,l
+exec,ex
+exec,l
+exec,ex
+exec,l
+exec,ex
+exec,l
+exec,ex
+
+############# There! We did it! Row 0 shifted left!
+
+
+############   Next find the leftmost "1" in row 4.
+############    That's Step 7:
+############     (Remember that (0,4) CANNOT be the
+############      leftmost "1"!)
+
+exec,h
+exec,u
+exec,u
+exec,u
+exec,u  #### Now pointer is at (4,0)
+
+tag,1
+exec,r
+ifd1,sk
+ret,1
+
+############# At this point, data pointer points to
+#############  the leftmost "1" in row 4
+############# Step 7 completed!
+
+exec,d0
+exec,d
+exec,d
+ifd1,sk
+adv,1  #### If pointer points to "0"
+       #### then we don't need to do
+       ####  this part of the loop.
+
+
+## Following is the routine for ADDITION if indicated
+
+
+################## simple addition routine
+####### tags used: 6 through 14
+
+exec,f0  # Gotta remember to start with a clear flag!
+
+exec,h
+exec,u
+exec,u
+exec,d1
+
+exec,h
+
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+
+tag,8 ############ simple addition loop
+
+iff0,sk
+adv,9
+
+####### here a=?, b=?, f=0
+
+ifd0,sk
+adv,10
+
+####### here a=0, b=?, f=0
+
+exec,u
+exec,fd
+exec,d
+iff0,sk
+adv,11
+
+####### here a=0, b=0, f=0
+########## do your thing for a=0, b=0, f=0:
+
+exec,d0
+exec,f0
+
+adv,13  ### exit loop
+
+tag,9
+
+####### here a=?, b=?, f=1
+
+ifd0,sk
+adv,9
+
+####### here a=0, b=?, f=1
+
+exec,u
+exec,fd
+exec,d
+iff0,sk
+adv,12
+
+####### here a=0, b=0, f=1
+########## do your thing for a=0, b=0, f=1:
+
+exec,d1
+exec,f0
+
+adv,13  ### exit loop
+
+############################################################
+
+tag,10
+
+####### here a=1, b=?, f=0
+
+exec,u
+exec,fd
+exec,d
+iff0,sk
+adv,10
+
+####### here a=1, b=0, f=0
+########## do your thing for a=1, b=0, f=0:
+
+exec,d1
+exec,f0
+
+adv,13  ### exit loop
+
+tag,11
+
+####### here a=0, b=1, f=0
+########## do your thing for a=0, b=1, f=0:
+
+exec,d1
+exec,f0
+
+adv,13  ### exit loop
+
+tag,9
+
+####### here a=1, b=?, f=1
+
+exec,u
+exec,fd
+exec,d
+iff0,sk
+adv,9
+
+####### here a=1, b=0, f=1
+########## do your thing for a=1, b=0, f=1:
+
+exec,d0
+exec,f1
+
+adv,13  ### exit loop
+
+tag,12
+
+####### here a=0, b=1, f=1
+########## do your thing for a=0, b=1, f=1:
+
+exec,d0
+exec,f1
+
+adv,13  ### exit loop
+
+tag,10
+
+####### here a=1, b=1, f=0
+########## do your thing for a=1, b=1, f=0:
+
+exec,d0
+exec,f1
+
+adv,13  ### exit loop
+
+tag,9
+
+####### here a=1, b=1, f=1
+########## do your thing for a=1, b=1, f=1:
+
+exec,d1
+exec,f1
+
+tag,13  ## THIS will exit the loop
+
+exec,u # <--------------------------!!!!!
+exec,u
+exec,u
+ifd0,sk
+adv,1
+exec,d
+exec,d
+exec,d
+exec,l
+ret,8   ## repeat addition loop for next bit
+
+tag,1 #### this is the exit point for ADDITION
+      ####
+      #### This is ALSO the fall-through point
+      ####  where the loop routine falls to
+      ####   when ADDITION is not indicated
+
+
+       ##################################
+ret,4  ###  repeat the VERY BIG LOOP  ###
+       ##################################
+
+
+tag,5   ##### Now all's we need to do is clean
+        #####  things up a bit.
+
+######### There's a  B I G  mess to clean up!
+
+#### First, clear row 4
+
+exec,h
+exec,u
+exec,u
+exec,u
+exec,u
+
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+####  Now scroll 2 rows DOWN starting with row 3
+####   (This leaves the bottom row intact.)
+
+exec,h
+exec,u
+exec,u
+exec,u
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,r
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,r
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,r
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,r
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,r
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,r
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,r
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,r
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,r
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,r
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,r
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,r
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,r
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,r
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,r
+
+exec,fd
+exec,d0
+exec,d
+exec,ex
+exec,d
+exec,df
+exec,u
+exec,u
+
+exec,h
+exec,f0
+
+####  ALL DONE!

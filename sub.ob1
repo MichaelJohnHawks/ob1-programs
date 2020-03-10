@@ -1,0 +1,287 @@
+##  "sub.ob1"
+##  "ob1" program for MJH One-Bit Machine Type 01
+##    by Michael John Hawks
+##     2020/02/16 10:24
+##
+##  16 bit signed integer subtraction
+##   (negative integers represented as two's compliment)
+##
+##  Tags used in this program: "tag,1" through "tag,4"
+##
+##  Enter a 16 bit signed binary integer in the bottom row 
+##  (row 0 - the ACCUMULATOR register) and in the row above
+##  that (row 1 - the SUBTRAHEND register).
+##
+##  Hit <ENTER> to run the program.
+##
+##  The SUBTRAHEND (row 1) will be subtracted from
+##  the ACCUMULATOR (row 0) and the DIFFERENCE will replace
+##  the original integer in the ACCUMULATOR. The SUBTRAHEND
+##  in row 1 remains unchanged.
+##
+##  If the result is valid the FLAG comes back as "0"
+##  otherwise the FLAG comes back as "1".
+#################################################################
+##  INTERESTING OBSERVATION:
+##
+##  The differences between the ADDITION algorithm and the
+##  SUBTRACTION algorithm are EXTREMELY subtle, less than
+##  a handful! In fact only two or three line changes
+##  were required to convert "add.ob1" to "sub.ob1".
+##
+##  I just thought that was extremely interesting.
+#################################################################
+##  Here's the program:
+
+### Subtraction program
+
+exec,f0 # clear the FLAG
+
+######### Initially clear row 2 and set the leftmost bit to "1"
+#########  to mark the boundary (to prevent an out-of-bounds
+#########   run-time exception)
+
+exec,h
+exec,u
+exec,u
+exec,d1
+
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+exec,r
+exec,d0
+
+######### Initial step DONE.
+
+######### Now we are going to copy the initial sign of the
+#########  ACCUMULATER (bottom  into row 3 for future reference
+#########   (this will help us decide if an overflow situation
+#########    occurs later).
+######### Copy the sign of the bottom number (ACCUMULATOR)
+#########  in position (3,0)
+
+exec,h  # reset pointer to HOME position (0,0)
+exec,fd # load FLAG with sign bit of bottom number (ACCUMULATOR)
+exec,u  # move up to row 1
+exec,u  # move up to row 2
+exec,u  # move up to row 3
+exec,df # load data bit with sign bit from FLAG (position 3,0)
+
+######### Next find the lowest order bit of the ACCUMULATOR register
+#########  (which is rightmost bit of row 0 or (15,0)
+
+exec,h  # Move pointer to HOME position (0,0)
+exec,r  # Begin moving toward the lowest order bit...
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r  # ...okay! we're there! This is the lowest order bit of the
+        #     bottom row. We're at position (0,15).
+
+exec,u  # Move up to the "B" register, the SUBTRAHEND
+
+exec,f0 # CLEAR THE FLAG PRIOR TO ENTERING THE LOOP!
+        # (I forgot to do this in a previous program
+        #  and I got all kinds of bad results)
+
+######################################
+#########  SUBTRACTION loop  #########
+######################################
+
+tag,1   # tag,1 marks the starting point of the SUBTRACTION loop
+
+#########################################################################
+##  Now let's discuss the SUBTRACTION algorithm.
+##  
+##  One logical approach toward building an alorithm is to construct
+##  a TRUTH TABLE that lists the initial possible conditions on the
+##  left side and the desired outcomes on the right side. Here's one
+##  possible TRUTH TABLE:  
+##  
+##  A = ACCUMULATOR (indicated bit in row 0)
+##  S = SUBTRAHEND (indicated bit in row 1)
+##  F = FLAG (the "carry" bit)
+##  
+##  (Before) ::(After)::  (Action)
+##  F0 S0 A0 ::F1 A1  ::
+##  *******************************************
+##  *******************************************
+##   0  0  0 :: 0  0  :: DO NOTHING!
+##   0  0  1 :: 0  1  ::
+##  *******************************************
+##   0  1  0 :: 0  1  ::
+##   0  1  1 :: 1  0  :: A1=NOT(A0)
+##   1  0  0 :: 0  1  ::   F1=A1
+##   1  0  1 :: 1  0  :: 
+##  *******************************************
+##   1  1  0 :: 1  0  :: DO NOTHING!
+##   1  1  1 :: 1  1  :: 
+##  *******************************************
+##  
+##  
+##  This looks do-able. Let's go for it!
+#########################################################################
+
+  iff1,sk # SKIP next if FLAG is "1"
+
+  adv,2   # at this point FLAG is "0"
+          # advance to see what to do next
+
+  ifd1,sk # at this point  FLAG is "1"
+          # SKIP next if SUBTRAHEND bit is "1"
+
+  adv,3   # at this point FLAG is "1", SUBTRAHEND bit is "0"
+          # so some kind of ACTION is required
+
+  adv,4   # at this point FLAG is "1", SUBTRAHEND bit is "1"
+          # "DO NOTHING" condition exists, so exit algorithm
+
+tag,2     # at this point FLAG is "0"
+
+  ifd1,sk # SKIP next if SUBTRAHEND bit is "1"
+
+  adv,4   # at this point FLAG is "0", SUBTRAHEND bit is "0"
+          # "DO NOTHING" condition exists, so exit algorithm
+          # else:
+          # FLAG is "0", SUBTRAHEND bit is "1"
+          # some kind of ACTION is required
+          # so fall through to the required ACTION
+
+tag,3     # at this point the algorithm requires ACTION
+
+  exec,d  # move pointer down to the ACCUMULATOR bit
+  exec,dc # compliment ACCUMULATOR bit
+  exec,fd # load FLAG with ACCUMULATOR bit
+  exec,u  # move back up to the SUBTRAHEND register
+
+tag,4     # Done with algorithm
+
+######### Now we need to check to see if this is the highest
+#########  order bit. If it is, we're done with the loop
+#########   else advance pointer left one bit and repeat loop.
+
+  exec,u  # Move up to next row. "1" signifies the highest-order bit.
+  ifd0,sk # SKIP the next instruction if that bit is "0".
+
+  adv,4   # Jump out of the loop (we're going forward, not back!).
+
+  exec,d  # Since we haven't yet reached the highest-order bit,
+          #  move back down.
+
+  exec,l  # Move left the next bit position
+
+  ret,1   # Go back and repeat the loop.
+
+tag,4     # At this point we're all done. (I KNOW I'm re-using tag,4.
+          #  So sue me.
+          #   Besides, tags are valuable therefore I like to recycle!)
+
+
+#########################################################################
+######### We are pretty much done, but we should figure out if the
+#########  result is valid.
+#########
+######### Gosh... how do we do that?
+######### 
+######### Let's see... If the original signs of the ACCUMULATOR and the
+#########  SUBTRAHEND are the same then:
+#########   the results are DEFINATELY valid. ALWAYS!
+######### 
+######### But if the original signs are different, there's the possibility
+#########   that something went wrong.
+######### 
+######### It looks like when the original signs are different and the
+#########  high-bit (the sign bit) of the ACCUMULATOR changed during
+#########   the course of the operation then:
+#########    THE RESULTS ARE NOT VALID!
+######### 
+######### The simplest way for me to figure this out is to
+#########  load the FLAG with the original high-bit of the ACCUMULATOR
+#########  then COMPLIMENT the flag if
+#########   the original high-bit of the SUBTRAHEND was "1"
+#########  Now if FLAG="0" then:
+#########    GET OUT! We'RE DONE!
+#########  ELSE:
+#########    reset FLAG to "0"
+#########    if original high-bit of ACCUMULATOR is "1" then:
+#########      COMPLIMENT the FLAG
+#########    if current high-bit of ACCUMULATOR is "1" then:
+#########      COMPLIMENT the FLAG
+#########    Now GET OUT! We'RE DONE!
+#########  
+######### When WE"RE DONE,
+#########  the FLAG returns "0" when the result is valid
+######### Otherwise
+#########  the FLAG returns "1" when the result is NOT valid.
+#########
+######### Say WHAT??????????????
+######### 
+######### Trust me dude. It works. ;-)
+######### 
+######### (I HATE it when you say that.)
+#########################################################################
+
+exec,h  # Send the pointer HOME (0,0) to get oriented
+exec,u  # Find the high-order bit of the SUBTRAHEND in row 1
+exec,fd # Load FLAG with data bit
+exec,u  # Now we are hunting for the original high-bit
+exec,u  #  of the ACCUMULATOR that we squirreled away earlier
+ifd1,fc # We're there. If bit is "1" then compliment the FLAG
+iff1,sk # If the FLAG is now "1" we're not done yet
+adv,3   #  otherwise GET OUT.
+
+exec,f0 # Since we're not done yet, reset the FLAG to "0"
+ifd1,fc # If original high-bit of ACCUMULATOR was "1" then
+        #  compliment the FLAG
+exec,h  # Send pointer HOME (0,0) to the cuurent high-bit
+        #  of the ACCUMULATOR
+ifd1,fc # If current high-bit of ACCUMULATOR is "1" then
+        #  compliment the FLAG
+tag,3   # Now WE'RE DONE!
+
+exec,h  # Go HOME simply to make things look nice and tidy.
+
+######### If the result is valid, the FLAG is now reset to "0"
+######### If the result is NOT valid, the FLAG is set to "1"
+
+#######################################################
+## All done with 16-bit signed integer subtraction!  ##
+#######################################################
+
+# end of listing

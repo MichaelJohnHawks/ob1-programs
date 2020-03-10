@@ -1,0 +1,165 @@
+########## "negate.ob1"
+########## "ob1" program for MJH One-Bit Machine Type 01
+##########   by Michael John Hawks
+##########    1st draft 2020/02/03 11:34
+##########     Updated 2020/02/11 13:38
+##########
+########## Negate (one's compliment) the signed binary integer
+##########  found in the bottom row
+########## FLAG returns "0" EXCEPT IN THE RARE CASE OF AN OVERFLOW
+##########  in which case FLAG returns "1" (see comments below)
+##########
+########## Tags used: tag,1 tag,2 tag,3 tag,15
+###################################################################
+########## Although this program allows the user to define a
+########## register size, I would recommend: DON'T DO THAT!
+########## Life is much simpler when the entire bottom row
+########## is allowed to be a register.
+##########
+########## If the user MUST define a register size, here's the
+########## procedure:
+##########
+########## Set register size by setting a bit to "1" in row 1
+########## (row 1 is is the row above the bottom row which is
+########## row 0). Setting the bit to the far right in row 1 yields
+########## a 1 bit register, setting the bit to the far left yields
+########## a 16 bit register, and setting a bit somewhere in
+########## between yields a register somewhere in between.
+########## i.e. if row 1 looks like this:
+########## 0000000000000100
+########## then a 3 bit register has been established.
+##########
+########## This program ALWAYS sets bit (0,1)
+##########  in row 1 to "1" to establish a 16 bit register by
+##########  default. So when you see that bit set to "1" that's
+##########  normal. Don't sweat about it.
+##########
+########## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+##########
+########## OH-OH!
+##########
+########## WAIT A MINUTE...
+##########
+########## I JUST NOW REALIZED SOMETHING VERY VERY IMPORTANT! And
+##########  it goes like this:
+##########
+########## It is NOT POSSIBLE to negate the "largest" (or is that
+##########  the "smallest") negative number that a given register
+##########   can hold.
+##########
+########## For example, if a register size is 4 bits, it is
+##########  capable of representing signed binary integers in the
+##########   range -8 through 7. ONE CANNOT NEGATE -8 because the
+##########    result (which is 8) is too big to represent as a
+##########     signed binary integer in a 4 bit register!
+##########
+########## So I have to go back and patch up this program to throw
+##########  the user a FLAG when this situation comes up.
+##########
+###################################################################
+##########
+########## There. I did it. When the above situation occurs, this
+##########  program will now return FLAG="1" to indicate that a
+##########   register overflow occurred..
+##########
+###################################################################
+########## Here's the program:
+
+exec,h   # make sure program always starts at origin (0,0)
+         # in bottom left corner
+
+exec,u   # go up to row 1 (second row from the bottom)
+exec,d1  # set the bit to the far left in row 1
+exec,d   # go back down to bottom row
+         # (later this may prevent an "out of bounds" exception)
+
+exec,r   # start moving data pointer toward far right
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r    # Now data pointer is at the far bottom right
+
+########### The first order of business is to compliment
+###########  all the bits in the register
+
+tag,1     # loop entry point
+exec,dc   # compliment data bit
+exec,u    # go up to see if this is highest order bit
+exec,fd   # store that bit in the FLAG
+exec,d    # go back down
+iff0,sk   # if the bit stored in the FLAG is "0",
+          #  then skip next instruction to keep going
+adv,2     # otherwise exit loop
+exec,l    # move left to next data bit
+ret,1     # repeat loop
+
+tag,2     # exit point of loop
+
+exec,h    # move data pointer home to get our bearings
+
+exec,r    # start moving data pointer toward far right
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r   # Now data pointer is at the far bottom right
+
+########## The next order of business is to increment
+##########  the register
+
+tag,3    # Start of loop (data pointer is in far bottom right)
+exec,dc  # COMPLIMENT the data bit
+ifd0,sk  # SKIP next instruction if data bit is now "0"
+adv,15   # data bit is now "1" and we are done incrementing
+         #  so go to end
+
+exec,u   # A bit set to "1" above the register
+         # (arbitrarily set by the user) marks the high
+         # order bit of the register
+         #
+exec,fd  # load flag with data bit. If it's "1" we are done
+exec,d   # (this may prevent an "out of bounds" exception)
+
+iff0,sk  # if flag="0" we are not done, so skip next instruction
+         #  to do the loop again
+adv,15   # if flag="1" we ARE done, so go to end of program.
+
+exec,l   # move left to next bit in the register
+ret,3    # do the loop again
+
+tag,15   # this is the EXIT point of the loop
+
+########## The last order of business is to address the
+##########  possibility of an "overflow" situation as mentioned
+##########   in the opening comments.
+
+exec,u   # move pointer up to check for a marker
+exec,fd  # load the FLAG with that bit
+exec,d   # move back down to register
+iff1,fd  # If FLAG="1" initially, then this is the highest order
+         #  bit of the register. And ONLY when that is the case
+         #   the highest order bit of the register WILL ALWAYS
+         #    BE "0" except when an overflow occurred.
+
+########## ALL DONE!
+
+########## End of listing

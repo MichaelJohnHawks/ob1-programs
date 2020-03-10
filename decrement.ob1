@@ -1,0 +1,82 @@
+########## "decrement.ob1"
+########## "ob1" program for MJH One-Bit Machine Type 01
+##########   by Michael John Hawks
+##########    1st draft 2020/02/03 02:50 (What am I doing up that late?!)
+##########     Updated 2020/02/07 10:25
+##########
+########## One-time Decrement of a Binary Number
+##########
+########## Set register size by setting a bit to "1" in row 1
+########## (row 1 is is the row above the bottom row which is row 0)
+########## setting bit to far right in row 1 yields a 1 bit register,
+########## setting bit to far left yields a 16 bit register,
+########## and setting a bit somewhere in between yields a register
+########## somewhere in between.
+########## i.e. if row 1 looks like this:
+########## 0000000000000100
+########## then a 3 bit register has been established.
+##########
+########## This program ALWAYS sets bit (0,1) in row 1 to "1"
+##########  to establish a 16 bit register by default.
+########## So when you see that bit set to "1" that's normal.
+##########  Don't sweat about it.
+##########
+########## This program will decrement the binary number in the
+########## bottom row (row 0).
+########## If the defined register flips to all ones ("111...1")
+########## then the FLAG is set to "1"
+########## otherwise FLAG is reset to "0"
+##########
+########## Run this program over and over and over to sequentially
+########## decrement subsequent numbers.
+#############################################################################
+########## Here's the program:
+
+exec,f0  # Reset FLAG to zero in order to start fresh
+exec,h   # make sure program always starts at origin (0,0)
+         # in bottom left corner
+
+exec,u   # go up to row 1 (second row from the bottom)
+exec,d1  # set the bit to the far left in row 1
+         # (this sets default register size of 16 bits and
+         #  may prevent an out-of-bounds runtime exception
+         #   later on.)
+exec,d   # go down to bottom row back to (0,0)
+exec,r   # start moving data pointer toward far right
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r
+exec,r    # Now data pointer is at the far bottom right
+
+tag,2     # Start of loop
+exec,dc   # COMPLIMENT the data bit
+ifd1,sk   # SKIP next instruction if data bit is now "1"
+adv,1     # bit is "0" and we are done decrementing, so go to end
+
+exec,u    # A bit set to "1" above the register
+          # (arbitrarily set by the user) marks the high
+          # order bit of the register
+          #
+exec,fd   # load flag with data bit. If it's "1" we are done
+exec,d    # (this may prevent an "out of bounds" exception)
+
+iff0,sk   # if flag="0" we are not done, so skip next instruction
+adv,1     # if flag="1" we ARE done, so go to end of program.
+# SKIP to here
+exec,l
+ret,2     # do the loop again
+
+tag,1     # this is a place to exit program normally
+          # Note that FLAG is set to "1" if an overflow occurred
+
+########## End of listing
